@@ -147,6 +147,8 @@ TIME       : 95.76 s
  - [Defining New Guests][13]
  - [Linux Based Custom Guest][14]
  - [Windows Based Custom Guest][15]
+
+
 ## Test Providers
 Test providers是Avocado-VT内置的一个可加载的模块的集合机制，能推送出一个目录，包含测试文件，配置文件和相关的依赖文件，以及其他的那些目录. test providers背后的设计目标是：
  - 使其他组织机构可以在其他任意git软件库上维护测试库。
