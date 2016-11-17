@@ -11,10 +11,10 @@ Avocado-VT目的是根据大多virt功能和性能测试需要来做一个集中
 
 对于 qemu subtests，我们可以这样做：
 
- - Monitor control for both human and QMP protocols
- - Build and use qemu using various methods (source tarball, git repo, rpm)
+ - 监视器控制human和QMP协议
+ - 建立和使用qemu使用各种函数方法 (source tarball, git repo, rpm)
  - 进行一定程度的性能测试
- - The KVM unit tests can be run comfortably from inside virt-test, we do have full integration with the unittest execution
+ - KVM单元测试可以轻松从virt-test内部运行,我们有完整的集成的unittest执行
 
 我们支持带有硬件虚拟化支持（AMD 和 Intel）的x84_64的主机，支持Intel 32和64位的客户机操作系统。
 
@@ -31,6 +31,7 @@ Virt-test变成了Avocado-VT项目。以前在Autotest项目下面，在：http:
 
 ## Installing Avocado-VT
 安装了Avocado之后，你应该已经使能了正确的软件库。
+
 Note：
 如果你是通过源码使用avocado，像[here][2]描述的那样做一个链接。
 
@@ -252,10 +253,12 @@ subdir: virt-test/openvswitch/
 
 ## Development workflow after the Repository Split
 
- 1. 你想在github中做出贡献的话，分叉出test provider
+ 1. 把你想要贡献的测试提供者转移到github：
+
+
  https://help.github.com/articles/fork-a-repo
  
- 2. 克隆分叉出的软件库。在这个例子中，我们假定你克隆的分叉的软件库在目录：
+ 2. 克隆分支存储库。 在这个例子中，我们假设你克隆了分叉的repo
 
 
 ``` stylus
@@ -2539,8 +2542,991 @@ $ qemu-system-x86_64 --enable-kvm -smp 4 -m 2048 -drive file=gluster://satheesh.
 
 # Setting up a Regression Test Farm for KVM
 
+你有所有的上行代码，并且你想知道KVM内置的Red Hat测试是否有许多秘密武器。不，它没有。
+
+然而，它是一个复杂的尝试，因为有许多相关细节。Farm设置和维持是不容易的，考虑到大量可能会失败的事情（machines misbehave, 网络问题，git软件库不可用等等）。你已经得到警告。
+
+对于刚刚说的所有，我们会分享我们已经做了什么。我们清空了配置文件和扩展，released them upstream，和这个程序一起，我们希望它会对你有用。这也将在一个单独的主机上覆盖KVM测试，做为关联许多主机的测试和Libvirt测试是一个正在进行中的工作。
+
+基本的步骤是：
+
+ 1. 安装一个autotest服务。
+ 2. 添加机器到服务（测试节点）。这些机器是将要测试的虚拟主机。
+ 3. 准备虚拟化测试jobs并且安排他们。
+ 4. 在你的环境中设置cobbler，这样你能安装主机。
+ 5. 大量的试验和错误，直到你把所有小细节整理出来。
+
+我们花几年时间重复上面的所有的步骤，来完善程序，我们愿意用文档记录所有使它达到最好的程度。然而我们害怕的是你将不得不做大量工作使程序适应你的环境。
+
+## Some conventions
+
+我们假设你将安装autotest到它的默认的上行位置。
+
+/usr/local/autotest
+
+因此这儿大量的参考路径把这当做基本目录。
+
+## CLI vs Web UI
+
+在这个文档期间，我们频繁使用术语CLI和Web UI。
+
+通过CLI，意味着我们用特定的程序：
+
+/usr/local/autotest/cli/autotest-rpc-client
+
+这是位于autotest代码中的检测。
+
+通过Web UI，意味着我们autotest的web界面，可能通过这被访问：
+
+http://your-autotest-server.com/afe
 
 
+## Step 1 - Install an autotest server
+
+在你的测试实验室中拥有因特网，这应该是最简单的步骤。我们要么获取一个在实验室可用的VM或者一个基本机器（它不会起作用，这边我们使用VM）。从现在开始我们称它为“服务器”框。
+
+服务器的硬盘应该有足够的空间来给测试结果。我们发现没超过6个月将会至少有250G的保存数据，条件是QEMU没有崩溃。
+
+你可以遵循下面链接描述的步骤：
+
+https://github.com/autotest/autotest/wiki/AutotestServerInstallRedHat
+
+对于Red Hat派生物（例如Fedora和RHEL）
+
+https://github.com/autotest/autotest/wiki/AutotestServerInstall
+
+对于Debian的派生物（Debian，Ubuntu）。
+
+注意到在使用在文档开始位置的正确的参考安装脚本是首选方法。如果你的实验室中有网络将可以更好的工作。假设你那没有网络，你需要依照在 ‘installing with the script’ 使用说明之后的说明。你有任何问题可以告知我们。
+
+
+## Step 2 - Add test machines
+
+它应该不言而喻，但你不得不添加的机器必须是支持虚拟化的（支持KVM）。
+
+你能要么通过CLI要么Web UI添加机器，依照下面的文档：
+
+https://github.com/autotest/autotest/wiki/ConfiguringHosts
+
+
+如果你不想阅读那，我将尽力尽力写一个快速手记有关如何去做。
+
+假设你有两台x86_64主机，一台AMD和其它。他们的主机名是：
+
+foo-amd.bazcorp.com foo-intel.bazcorp.com
+
+我将创建两个标签，amd64 和 intel64，我也将创建一个标签表明机器可以被cobbler分配。这是因为你能让autotest在任何能够比配已给标签的机器上运行一个job。
+
+做为autotest用户记录：
+
+``` stylus
+$ /usr/local/autotest/cli/autotest-rpc-client label create -t amd64
+Created label:
+    'amd64'
+$ /usr/local/autotest/cli/autotest-rpc-client label create -t intel64
+Created label:
+    'intel64'
+$ /usr/local/autotest/cli/autotest-rpc-client label create hostprovisioning
+Created label:
+    'hostprovisioning'
+```
+
+然后我将用合适的标签创建每台机器。
+
+``` stylus
+$ /usr/local/autotest/cli/autotest-rpc-client host create -t amd64 -b hostprovisioning foo-amd.bazcorp.com
+Added host:
+    foo-amd.bazcorp.com
+
+$ /usr/local/autotest/cli/autotest-rpc-client host create -t intel64 -b hostprovisioning foo-intel.bazcorp.com
+Added host:
+    foo-intel.bazcorp.com
+```
+
+## Step 3 - Prepare the test jobs
+
+现在你不得不拷贝插件，插件我们开发用来扩展CLI去解析virt jobs中附加的信息：
+
+``` stylus
+$ cp /usr/local/autotest/contrib/virt/site_job.py /usr/local/autotest/cli/
+```
+
+这应该足够去使能所有的额外功能。
+
+你也应该拷贝一份我们发行出来用作参考的的site-config.cfg文件，给qemu配置模块：
+
+``` stylus
+$ cp /usr/local/autotest/contrib/virt/site-config.cfg /usr/local/autotest/client/tests/virt/qemu/cfg
+```
+意识到你需要很好的阅读这个文件，并且后面，根据你的测试需求配置它。我们特别的强调你可以创建一个你想要测试的git软件库的私有git mirrors，so you tax the upstream mirrors less，并且增加了可靠性。
+
+
+现在，它能在Fedora 18，upstream kvm上运行 regression testing ， 如果你有一个cobbler功能的实例，带有一个名为f18-autotest-kvm的配置文件能被恰当的安装在你的机器上。Having that properly set up may open another can of worms.
+
+我们在我们的服务器上安排jobs的一种简单的方式是使用cron去安排你想测试东西的每天测试jobs。这儿有一个例子在'out of box'工作。如果你有一个你以收到邮件通知为目的创建的因特网邮件列表，叫做autotest-virt-jobs@foocorp.com ，你可以把它放在服务器中用户自动测试的crontab上：
+
+
+``` stylus
+07 00 * * 1-7 /usr/local/autotest/cli/autotest-rpc-client job create -B never -a never -s -e autotest-virt-jobs@foocorp.com -f "/usr/local/autotest/contrib/virt/control.template" -T --timestamp -m '1*hostprovisioning' -x 'only qemu-git..sanity' "Upstream qemu.git sanity"
+15 00 * * 1-7 /usr/local/autotest/cli/autotest-rpc-client job create -B never -a never -s -e autotest-virt-jobs@foocorp.com -f "/usr/local/autotest/contrib/virt/control.template" -T --timestamp -m '1*hostprovisioning' -x 'only f18..sanity' "Fedora 18 koji sanity"
+07 01 * * 1-7 /usr/local/autotest/cli/autotest-rpc-client job create -B never -a never -s -e autotest-virt-jobs@foocorp.com -f "/usr/local/autotest/contrib/virt/control.template" -T --timestamp -m '1*hostprovisioning' -x 'only qemu-git..stable' "Upstream qemu.git stable"
+15 01 * * 1-7 /usr/local/autotest/cli/autotest-rpc-client job create -B never -a never -s -e autotest-virt-jobs@foocorp.com -f "/usr/local/autotest/contrib/virt/control.template" -T --timestamp -m '1*hostprovisioning' -x 'only f18..stable' "Fedora 18 koji stable"
+```
+
+那应该足够有一个 sanity 和 stable job：
+
+ - Fedora 18.
+ - qemu.git userspace and kvm.git kernel.
+
+
+这些 ‘sanity’ 和 ‘stable’ jobs做了什么？简要说：
+
+ - 主机操作系统通过cobbler安装
+ - 主机操作系统最新的kernel安装（要么建立在Fedora的最新的kernel，要么检测，编译，安装kvm.git）
+
+## sanity job
+
+ - 安装最新的Fedora 18 qemu-kvm，或者编译最新的 qemu.git
+ - 安装一个带有Fedora 18 的VM，启动，重启，用所有支持的协议做简单的单独的主机迁移
+ - 花大概两小时。实际上，我们内部测试了更多的客户机，但他们不是可以广泛可用的（RHEL 6 和 Windows 7），所以我们用Fedora 18替换他们。
+
+## stable job
+
+ - 和上面一样，但有更多的网络工作，timedrift 和其他测试。
+
+
+## Setup cobbler to install hosts
+
+Cobbler是一个安装服务，控制你的x86_64基本虚拟化主机的DHCP ，（或者）PXE boot。通过下面的资源，你能学习如何设置它;
+
+
+https://github.com/cobbler/cobbler/wiki/Start%20Here
+
+你设置它来进行简单的安装，并且你可能只需要导入一个Fedora 18 DVD到它里面，所以它能用于安装你的主机。跟随着导入进程，你将拥有一份创建的‘profile’，它是一个描述一个操作系统能被安装在你的虚拟化主机的标签。我们选择的标签是上面已经提到过的 f18-autotest-kvm。如果你想要改变名字，相应地你将不得不改变 site-config.cfg文件。
+
+你也将不得不添加你的测试机到你的cobbler服务器，并且将设置远程控制他们（开关电源）。
+
+下面的内容是重要的：
+
+在autotest服务中你的机器的主机名必须是在cobbler中你的系统的名字。
+
+所以，对于假设的例子，你将不得不在cobbler中用名字foo-amd.bazcorp.com foo-intel.bazcorp.com设置系统。那完全正确，系统的‘名字’必须是‘主机名’。否则autotest将询问cobbler并且cobbler不知道autotest谈论的是哪台机器。
+
+
+我们的其他的设想在这儿：
+
+1）我们有一个（只读的，避免人们错误的删除了系统）NFS共享，里面有Fedora 18 DVD和其他ISOS。基本目录的数据结构可能看上去像这样：
+
+``` stylus
+.
+|-- linux
+|   `-- Fedora-18-x86_64-DVD.iso
+`-- windows
+    |-- en_windows_7_ultimate_x64_dvd_x15-65922.iso
+    |-- virtio-win.iso
+    `-- winutils.iso
+```
+这是为了防止您合法地有权下载和使用Windows 7，例如。
+
+
+2）我们有另一个带有qcow2 images备份空间的共享的NFS以防测试期间出现损坏，并且你想要人们去分析它们。数据结构将是：
+
+
+``` stylus
+.
+|-- foo-amd
+`-- bar-amd
+```
+
+那是，在你的网格上你的每个主机机器都有的一个目录。确保它们最终在kickstart中正确配置。
+
+现在这里是kickstart的一个摘录，我们学到了一些经验。一些注意点：
+
+ - 这不是一个完全形成的，功能的kickstart，仅仅为了防止你没注意到。
+ - 这是希望你阅读它，理解它，并适应你的需要。如果你把它粘贴到你的kickstart，告诉我它不工作，我会默认忽略你的电子邮件，如果你坚持，你的电子邮件将被过滤掉，去垃圾桶。
+
+
+``` stylus
+install
+
+text
+reboot
+lang en_US
+keyboard us
+rootpw --iscrypted [your-password]
+firewall --disabled
+selinux --disabled
+timezone --utc America/New_York
+firstboot --disable
+services --enabled network --disabled NetworkManager
+bootloader --location=mbr
+ignoredisk --only-use=sda
+zerombr
+clearpart --all --drives=sda --initlabel
+autopart
+network --bootproto=dhcp --device=eth0 --onboot=on
+
+%packages
+@core
+@development-libs
+@development-tools
+@virtualization
+wget
+dnsmasq
+genisoimage
+python-imaging
+qemu-kvm-tools
+gdb
+iasl
+libvirt
+python-devel
+ntpdate
+gstreamer-plugins-good
+gstreamer-python
+dmidecode
+popt-devel
+libblkid-devel
+pixman-devel
+mtools
+koji
+tcpdump
+bridge-utils
+dosfstools
+%end
+
+%post
+
+echo "[nfs-server-that-holds-iso-images]:[nfs-server-that-holds-iso-images]/base_path/iso /var/lib/virt_test/isos nfs ro,defaults 0 0" >> /etc/fstab
+echo "[nfs-server-that-holds-iso-images]:[nfs-server-that-holds-iso-images]/base_path/steps_data  /var/lib/virt_test/steps_data nfs rw,nosuid,nodev,noatime,intr,hard,tcp 0 0" >> /etc/fstab
+echo "[nfs-server-that-has-lots-of-space-for-backups]:/base_path/[dir-that-holds-this-hostname-backups] /var/lib/virt_test/images_archive nfs rw,nosuid,nodev,noatime,intr,hard,tcp 0 0" >> /etc/fstab
+mkdir -p /var/lib/virt_test/isos
+mkdir -p /var/lib/virt_test/steps_data
+mkdir -p /var/lib/virt_test/images
+mkdir -p /var/lib/virt_test/images_archive
+
+mkdir --mode=700 /root/.ssh
+echo 'ssh-dss [the-ssh-key-of-the-Server-autotest-user]' >> /root/.ssh/authorized_keys
+chmod 600 /root/.ssh/authorized_keys
+
+ntpdate [your-ntp-server]
+hwclock --systohc
+
+systemctl mask tmp.mount
+%end
+```
+
+## Painful trial and error process to adjust details
+
+毕竟，你可以开始运行你的测试工作，看看什么东西需要修复。 通过使用自动测试用户登录到服务器，可以轻松地运行作业，并使用命令：
+
+``` stylus
+$ /usr/local/autotest/cli/autotest-rpc-client job create -B never -a never -s -e autotest-virt-jobs@foocorp.com -f "/usr/local/autotest/contrib/virt/control.template" -T --timestamp -m '1*hostprovisioning' -x 'only f18..sanity' "Fedora 18 koji sanity"
+```
+
+正如你可能已经猜到的，这将安排一个Fedora 18 sanity job。 所以理解它，并一步一步地解决。 如果有什么问题，你可以看看这：
+
+
+https://github.com/autotest/autotest/wiki/DiagnosingFailures
+
+看看它是否有帮助，你可以在邮件列表上询问，但在你让我们一步一步的引导你通过所有过程之前，请先相当好的完成你的工作。这已经是一步步的步骤了。
+完成了，好运，开心的测试吧！
+
+
+# Installing Windows virtio drivers with Avocado-VT
+
+所以，你想要使用Avocado-VT去安装windows guests。您还希望它们与为Windows开发的半虚拟化驱动程序一起安装。你来到了正确的地方。
+
+
+## A bit of context on windows virtio drivers install
+
+到目前为止，这种安装方法涵盖存储（viostor）和网络（NetKVM）驱动程序。 Avocado-VT使用带有Windows应答文件的启动软盘，以便执行Windows客户端的无人值守安装。 对于winXP和win2003，无人参与文件是简单的.ini文件，而对于win2008和更高版本，无人参与文件是XML文件。
+
+为了在客户机安装过程中安装virtio驱动程序，KVM自动测试必须通知windows安装程序在哪查找驱动程序。 因此，我们从以下假设开始工作：
+
+ 1. 您已经有一个iso文件，其中包含netikvm和viostor的windows virtio驱动程序（inf文件）。 如果你不确定如何生成该iso，在kvm test目录下有一个在contrib下的脚本示例。这里是一个例子，如何组织这个cd中的文件，假设iso映像安装在/ tmp / virtio-win下（实际的cd有更多的文件，但我们只采取了关于示例的部分，win7 64位）。
+
+
+``` stylus
+/tmp/virtio-win/
+/tmp/virtio-win/vista
+/tmp/virtio-win/vista/amd64
+/tmp/virtio-win/vista/amd64/netkvm.cat
+/tmp/virtio-win/vista/amd64/netkvm.inf
+/tmp/virtio-win/vista/amd64/netkvm.pdb
+/tmp/virtio-win/vista/amd64/netkvm.sys
+/tmp/virtio-win/vista/amd64/netkvmco.dll
+/tmp/virtio-win/vista/amd64/readme.doc
+/tmp/virtio-win/win7
+/tmp/virtio-win/win7/amd64
+/tmp/virtio-win/win7/amd64/balloon.cat
+/tmp/virtio-win/win7/amd64/balloon.inf
+/tmp/virtio-win/win7/amd64/balloon.pdb
+/tmp/virtio-win/win7/amd64/balloon.sys
+/tmp/virtio-win/win7/amd64/blnsvr.exe
+/tmp/virtio-win/win7/amd64/blnsvr.pdb
+/tmp/virtio-win/win7/amd64/vioser.cat
+/tmp/virtio-win/win7/amd64/vioser.inf
+/tmp/virtio-win/win7/amd64/vioser.pdb
+/tmp/virtio-win/win7/amd64/vioser.sys
+/tmp/virtio-win/win7/amd64/vioser-test.exe
+/tmp/virtio-win/win7/amd64/vioser-test.pdb
+/tmp/virtio-win/win7/amd64/viostor.cat
+/tmp/virtio-win/win7/amd64/viostor.inf
+/tmp/virtio-win/win7/amd64/viostor.pdb
+/tmp/virtio-win/win7/amd64/viostor.sys
+/tmp/virtio-win/win7/amd64/wdfcoinstaller01009.dll
+...
+```
+
+如果您计划安装WinXP或Win2003，您还应该有一个预制的带有virtio 驱动和配置文件的软盘映像，安装程序将从中读取获取正确的驱动。不幸的是，我没有太多的信息有关如何建立该文件，如果你愿意测试这些客户操作系统，你可能会有已经组装好的内核。
+
+
+所以你必须映射您的包含驱动程序的cd路径到配置变量中。我们希望通过与virtio驱动团队的合作来提高它。
+
+
+## Step by step procedure
+
+我们假定你已经有了virtio cd的正确地装配，以及windows iso确实匹配了我们在test_base.cfg例子中的提供。不要担心，我们尽可能多地使用MSDN中的文件，来标准化。
+
+我们将使用win7 64位（非sp1）为例，所以你需要的CD是：
+
+``` stylus
+cdrom_cd1 = isos/windows/en_windows_7_ultimate_x86_dvd_x15-65921.iso
+sha1sum_cd1 = 5395dc4b38f7bdb1e005ff414deedfdb16dbf610
+```
+
+
+这个文件可以从MSDN网站下载，所以你可以验证它的SHA1总和是否匹配。
+
+ 1. git克隆autotest到一个便捷的位置，例如$HOME/Code/autotest。看[the download source documentation][34]，请使用git并克隆repo到提到的位置。
+ 2. 执行get_started.py脚本（see the get started documentation <../GetStartedGuide>）。它将创建我们期望cd文件可用的目录。你不需要下载Fedora 14 DVD，但是你需要下载winutils.iso cd （在下面的例子，我跳过了下载，因为我有这个文件，所以我可以将其复制到预期的位置，这是/ tmp / kvm_autotest_root / isos / windows）。请阅读脚本中提到的文档，以避免缺少安装的软件包和其他配置错误。
+ 3. 在 /tmp/kvm_autotest_root/isos 目录下创建windows 目录。
+ 4. 拷贝你的windows 7 iso到 /tmp/kvm_autotest_root/isos/windows
+ 5. 编辑文件cdkeys.cfg，并将windows 7 64位的密钥放在该文件上
+ 6. 编辑文件win-virtio.cfg并验证路径是否正确。你可以通过这个会话看到
+
+
+``` stylus
+64:
+    unattended_install.cdrom, whql.support_vm_install:
+        # Look at your cd structure and see where the drivers are
+        # actually located (viostor and netkvm)
+        virtio_storage_path = 'F:\win7\amd64'
+        virtio_network_path = 'F:\vista\amd64'
+
+        # Uncomment if you have a nw driver installer on the iso
+        #virtio_network_installer_path = 'F:\RHEV-Network64.msi'
+```
+
+ 7. 如果您使用带有本文开头提到的布局的cd，路径已经是正确的。然而，如果他们不同（更有可能），你必须调整路径。不要忘记阅读并在win-virtio.cfg文件中根基评论的指示做出所有的配置。
+ 8. 在 tests.cfg文件中，你必须启动windows 7的virtio的安装。在下面的块中，你不得不改变  *only rtl8139* 到 *only virtio_net* ， *only ide* 到 *only virtio-blk* 。你通知自动测试，你只想要一个带有virtio硬盘和网络设备的vm安装。
+
+``` stylus
+# Runs qemu-kvm, Windows Vista 64 bit guest OS, install, boot, shutdown
+- @qemu_kvm_windows_quick:
+    # We want qemu-kvm for this run
+    qemu_binary = /usr/bin/qemu-kvm
+    qemu_img_binary = /usr/bin/qemu-img
+    # Only qcow2 file format
+    only qcow2
+    # Only rtl8139 for nw card (default on qemu-kvm)
+    only rtl8139
+    # Only ide hard drives
+    only ide
+    # qemu-kvm will start only with -smp 2 (2 processors)
+    only smp2
+    # No PCI assignable devices
+    only no_pci_assignable
+    # No large memory pages
+    only smallpages
+    # Operating system choice
+    only Win7.64
+    # Subtest choice. You can modify that line to add more subtests
+    only unattended_install.cdrom, boot, shutdown
+```
+
+
+
+ 9. 你必须改变tests.cfg的底部使其看起来像下面，这意味着你通知自动测试只运行上面提到的测试集，而不是默认，安装Fedora 15。
+
+``` stylus
+only qemu_kvm_windows_quick
+```
+
+ 10. 根据get_started.py的输出，可以执行以运行自动测试的命令是（请以root用户运行或者使用sudo）
+
+``` stylus
+$ $HOME/Code/autotest/client/bin/autotest $HOME/Code/autotest/client/tests/kvm/control
+```
+
+ 11. Profit！你自动安装带有virtio驱动的windows 7将被执行。
+
+如果你想安装其它客户机，你可以想象，你可以用其它客户机改变 *only Win7.64* ，例如 *only Win2008.64.sp2* 。现在，在第一次执行安装时，最好观察安装以查看是否没有问题，例如一个错误的cd秘钥阻止安装发生。Avocado-VT打印所使用的qemu命令行，因此您可以查看可以连接到哪个vnc显示器以观察正在安装的vm。
+
+# Running QEMU kvm-unit-tests
+
+当前有两种方式去运行 kvm-unit-tests。每个测试结果更新的一种方法是[Run kvm-unit-tests in avocado][35]，稍旧的一种方法是[Run kvm-unit-tests in avocado-vt][36] 这需要手动修改并且只报告整体结果。
+
+## Run kvm-unit-tests in avocado
+有一个contrib脚本可以使用外部运行器Avocado功能运行kvm-unit-test。它可选择从Git下载最新的kvm-unit-test，编译它并在avocado中运行测试。
+
+contrib 脚本位于$AVOCADO/contrib/testsuites/run-kvm-unit-test.sh或者可以从这下载： https://raw.githubusercontent.com/avocado-framework/avocado/master/contrib/testsuites/run-kvm-unit-test.sh
+
+然后你可以简单的运行它并等待结果：
+
+``` stylus
+$ ./contrib/testsuites/run-kvm-unit-test.sh
+JOB ID     : ca00d570f03b4942368ec9c407d69a881d98eb9d
+JOB LOG    : /home/medic/avocado/job-results/job-2016-07-04T09.38-ca00d57/job.log
+TESTS      : 38
+ (01/38) access: PASS (4.77 s)
+ (02/38) apic: PASS (5.10 s)
+ (03/38) debug: PASS (1.82 s)
+ (04/38) emulator:  ^C
+Interrupt requested. Waiting 2 seconds for test to finish (ignoring new Ctrl+C until then)
+
+INTERRUPTED (0.84 s)
+RESULTS    : PASS 3 | ERROR 0 | FAIL 0 | SKIP 34 | WARN 0 | INTERRUPT 1
+JOB HTML   : /home/medic/avocado/job-results/job-2016-07-04T09.38-ca00d57/html/results.html
+TESTS TIME : 12.54 s
+```
+
+Note：
+
+您可以指定各种选项，包括avocado参数。使用 -h 去查看所有（例如：通配符指定测试模式或路径以避免（重新）下载kvm-unit-test）
+
+
+## Run kvm-unit-tests in avocado-vt
+
+一段时间以来，qemu-kvm包含一个单元测试套件，可用于评估一些KVM子系统的行为。理想情况下，如果您运行最新的qemu和最新的Linux KVM树，它们应该是PASS。Avocado-VT很长一段时间都支持以自动化的方式运行它们。这是一个很好的机会，把你的git分支加入到unittest，从一个干净的状态开始（KVM自动测试将从您的git树获取，保留您的实际开发树完好无损和从头做的事情，这是不太可能掩盖问题）。
+
+
+### A bit of context on Avocado-VT build tests
+
+人们通常不知道Avocado-VT支持从许多不同的软件源中构建和安装用于测试目的的QEMU / KVM。你可以：
+
+ 1. 从一个git软件库构建qemu-kvm（最常见的选择是为开发者黑客代码）
+ 2. 用rpm文件安装qemu-kvm（人们测试一个新建的rpm包）
+ 3. 直接从Red Hat构建系统安装qemu-kvm（Koji是Fedora构建系统的实例，Brew是相同的，但是对于RHEL而言不同。有了这个，我们可以对Fedora和RHEL包执行质量控制，试图在软件包打断用户之前预料到破坏的包）
+
+
+对于本文，我们将专注于git的基本构建。 此外，我们专注于Fedora和RHEL。我们将尝试用一个非常通用的方式写文章，欢迎改进这一点，如何在你最喜欢的linux发行版上做同样的细节。
+
+
+### Before you start
+
+您需要验证您是否可以从源代码以及单元测试套件实际构建qemu-kvm。
+
+ 1. 确保已安装了相应的软件包。你可以阅读[the install prerequesite packages (client) section][37]获取更多信息。
+
+### Step by step procedure
+
+ 1. Git克隆一份autotest到方便的位置，例如 $HOME/Code/autotest 。查看[the download source documentation][38] ，请使用git并克隆软件库到提到的位置。
+ 2. 执行get_started.py脚本（查看 [the get started documentation][39] ，如果你只是想运行单元测试，你可以安全地跳过每一个iso下载可能，因为qemu-kvm将直接引导小内核镜像（单元测试），而不是完全的操作系统安装。）
+ 3. 由于运行单元测试是相当独立于其他你可以做的Avocado-VT测试的，它是人们感兴趣的东西，我们为它准备了一个特殊的控制文件和一个特殊的配置文件。在kvm目录中，您可以看到文件unittests.cfg control.unittests。 您只需要编辑unittests.cfg。
+ 4. 文件unittests.cfg是用于运行单元测试的独立配置。 它由一个build变量和unittests变量组成。 编辑文件，它将如下所示：
+
+``` stylus
+... bunch of params needed for the Avocado-VT preprocessor
+# Tests
+variants:
+    - build:
+        type = build
+        vms = ''
+        start_vm = no
+        # Load modules built/installed by the build test?
+        load_modules = no
+        # Save the results of this build on test.resultsdir?
+        save_results = no
+        variants:
+            - git:
+                mode = git
+                user_git_repo = git://git.kernel.org/pub/scm/virt/kvm/qemu-kvm.git
+                user_branch = next
+                user_lbranch = next
+                test_git_repo = git://git.kernel.org/pub/scm/virt/kvm/kvm-unit-tests.git
+
+    - unittest:
+        type = unittest
+        vms = ''
+        start_vm = no
+        unittest_timeout = 600
+        testdev = yes
+        extra_params += " -S"
+        # In case you want to execute only a subset of the tests defined on the
+        # unittests.cfg file on qemu-kvm, uncomment and edit test_list
+        #test_list = idt_test hypercall vmexit realmode
+
+only build.git unittest
+```
+
+ 5. 正如你可以看到上面，你有些地方既指定用户空间git repo也指定了单元测试 git repo。你可以随意用你自己的git repo替换user_git_repo。 它可以是一个远程git位置，或者它可以简单地是一个克隆的树在您的开发机器的路径。
+ 6. 对于Fedora 15，与gcc 4.6.0一起，编译更严格，所以代码中有未使用的变量这类事件将导致构建失败。您可以通过为qemu-kvm用户空间构建提供额外的配置脚本选项来禁用此严格级别。在user_git_repo行下面，您可以设置变量extra_configure_options去包括--disable-werror。假设你还希望Avocado-VT从我的本地树中获取/ home / lmr / Code / qemu-kvm，master分支，与kvm-unit-tests repo相同。如果您进行这些更改，您的构建版本将如下所示：
+
+
+``` stylus
+- git:
+    mode = git
+    user_git_repo = /home/lmr/Code/qemu-kvm
+    extra_configure_options = --disable-werror
+    user_branch = master
+    user_lbranch = master
+    test_git_repo = /home/lmr/Code/kvm-unit-tests
+```
+
+
+
+ 7. 现在你可以像往常一样运行Avocado-VT，你只需要改变主控制文件（called  *control*  with the unittest one  *control.unittests* ）
+
+
+``` stylus
+$ $HOME/Code/autotest/client/bin/autotest $HOME/Code/autotest/client/tests/kvm/control.unittests
+```
+
+ 8. 典型的单元测试执行的输出看起来像。 请注意，自动测试通知您每个单元测试的日志所在的位置，因此您也可以检查它。
+
+
+``` stylus
+07/14 18:49:44 INFO |  unittest:0052| Running apic
+07/14 18:49:44 INFO |    kvm_vm:0782| Running qemu command:
+/usr/local/autotest/tests/kvm/qemu -name 'vm1' -nodefaults -vga std -monitor unix:'/tmp/monitor-humanmonitor1-20110714-184944-6ms0',server,nowait -qmp unix:'/tmp/monitor-qmpmonitor1-20110714-184944-6ms0',server,nowait -serial unix:'/tmp/serial-20110714-184944-6ms0',server,nowait -m 512 -smp 2 -kernel '/usr/local/autotest/tests/kvm/unittests/apic.flat' -vnc :0 -chardev file,id=testlog,path=/tmp/testlog-20110714-184944-6ms0 -device testdev,chardev=testlog  -S -cpu qemu64,+x2apic
+07/14 18:49:46 INFO |  unittest:0096| Waiting for unittest apic to complete, timeout 600, output in /tmp/testlog-20110714-184944-6ms0
+07/14 18:59:46 ERROR|  unittest:0108| Exception happened during apic: Timeout elapsed (600s)
+07/14 18:59:46 INFO |  unittest:0113| Unit test log collected and available under /usr/local/autotest/results/default/kvm.qemu-kvm-git.unittests/debug/apic.log
+07/14 18:59:46 INFO |  unittest:0052| Running smptest
+07/14 19:00:15 INFO |   aexpect:0783| (qemu) (Process terminated with status 0)
+07/14 19:00:16 INFO |    kvm_vm:0782| Running qemu command:
+/usr/local/autotest/tests/kvm/qemu -name 'vm1' -nodefaults -vga std -monitor unix:'/tmp/monitor-humanmonitor1-20110714-184944-6ms0',server,nowait -qmp unix:'/tmp/monitor-qmpmonitor1-20110714-184944-6ms0',server,nowait -serial unix:'/tmp/serial-20110714-184944-6ms0',server,nowait -m 512 -smp 2 -kernel '/usr/local/autotest/tests/kvm/unittests/smptest.flat' -vnc :0 -chardev file,id=testlog,path=/tmp/testlog-20110714-184944-6ms0 -device testdev,chardev=testlog  -S
+07/14 19:00:17 INFO |  unittest:0096| Waiting for unittest smptest to complete, timeout 600, output in /tmp/testlog-20110714-184944-6ms0
+07/14 19:00:17 INFO |   aexpect:0783| (qemu) (Process terminated with status 0)
+07/14 19:00:18 INFO |  unittest:0113| Unit test log collected and available under /usr/local/autotest/results/default/kvm.qemu-kvm-git.unittests/debug/smptest.log
+07/14 19:00:18 INFO |  unittest:0052| Running smptest3
+07/14 19:00:18 INFO |    kvm_vm:0782| Running qemu command:
+/usr/local/autotest/tests/kvm/qemu -name 'vm1' -nodefaults -vga std -monitor unix:'/tmp/monitor-humanmonitor1-20110714-184944-6ms0',server,nowait -qmp unix:'/tmp/monitor-qmpmonitor1-20110714-184944-6ms0',server,nowait -serial unix:'/tmp/serial-20110714-184944-6ms0',server,nowait -m 512 -smp 3 -kernel '/usr/local/autotest/tests/kvm/unittests/smptest.flat' -vnc :0 -chardev file,id=testlog,path=/tmp/testlog-20110714-184944-6ms0 -device testdev,chardev=testlog  -S
+07/14 19:00:19 INFO |  unittest:0096| Waiting for unittest smptest3 to complete, timeout 600, output in /tmp/testlog-20110714-184944-6ms0
+07/14 19:00:19 INFO |   aexpect:0783| (qemu) (Process terminated with status 0)
+07/14 19:00:20 INFO |  unittest:0113| Unit test log collected and available under /usr/local/autotest/results/default/kvm.qemu-kvm-git.unittests/debug/smptest3.log
+07/14 19:00:20 INFO |  unittest:0052| Running vmexit
+07/14 19:00:20 INFO |    kvm_vm:0782| Running qemu command:
+/usr/local/autotest/tests/kvm/qemu -name 'vm1' -nodefaults -vga std -monitor unix:'/tmp/monitor-humanmonitor1-20110714-184944-6ms0',server,nowait -qmp unix:'/tmp/monitor-qmpmonitor1-20110714-184944-6ms0',server,nowait -serial unix:'/tmp/serial-20110714-184944-6ms0',server,nowait -m 512 -smp 2 -kernel '/usr/local/autotest/tests/kvm/unittests/vmexit.flat' -vnc :0 -chardev file,id=testlog,path=/tmp/testlog-20110714-184944-6ms0 -device testdev,chardev=testlog  -S
+07/14 19:00:21 INFO |  unittest:0096| Waiting for unittest vmexit to complete, timeout 600, output in /tmp/testlog-20110714-184944-6ms0
+07/14 19:00:31 INFO |   aexpect:0783| (qemu) (Process terminated with status 0)
+07/14 19:00:31 INFO |  unittest:0113| Unit test log collected and available under /usr/local/autotest/results/default/kvm.qemu-kvm-git.unittests/debug/vmexit.log
+07/14 19:00:31 INFO |  unittest:0052| Running access
+07/14 19:00:31 INFO |    kvm_vm:0782| Running qemu command:
+/usr/local/autotest/tests/kvm/qemu -name 'vm1' -nodefaults -vga std -monitor unix:'/tmp/monitor-humanmonitor1-20110714-184944-6ms0',server,nowait -qmp unix:'/tmp/monitor-qmpmonitor1-20110714-184944-6ms0',server,nowait -serial unix:'/tmp/serial-20110714-184944-6ms0',server,nowait -m 512 -smp 2 -kernel '/usr/local/autotest/tests/kvm/unittests/access.flat' -vnc :0 -chardev file,id=testlog,path=/tmp/testlog-20110714-184944-6ms0 -device testdev,chardev=testlog  -S
+07/14 19:00:32 INFO |  unittest:0096| Waiting for unittest access to complete, timeout 600, output in /tmp/testlog-20110714-184944-6ms0
+07/14 19:01:02 INFO |   aexpect:0783| (qemu) (Process terminated with status 0)
+07/14 19:01:03 INFO |  unittest:0113| Unit test log collected and available under /usr/local/autotest/results/default/kvm.qemu-kvm-git.unittests/debug/access.log
+07/14 19:01:03 INFO |  unittest:0052| Running emulator
+07/14 19:01:03 INFO |    kvm_vm:0782| Running qemu command:
+/usr/local/autotest/tests/kvm/qemu -name 'vm1' -nodefaults -vga std -monitor unix:'/tmp/monitor-humanmonitor1-20110714-184944-6ms0',server,nowait -qmp unix:'/tmp/monitor-qmpmonitor1-20110714-184944-6ms0',server,nowait -serial unix:'/tmp/serial-20110714-184944-6ms0',server,nowait -m 512 -smp 2 -kernel '/usr/local/autotest/tests/kvm/unittests/emulator.flat' -vnc :0 -chardev file,id=testlog,path=/tmp/testlog-20110714-184944-6ms0 -device testdev,chardev=testlog  -S
+07/14 19:01:05 INFO |  unittest:0096| Waiting for unittest emulator to complete, timeout 600, output in /tmp/testlog-20110714-184944-6ms0
+07/14 19:01:06 INFO |   aexpect:0783| (qemu) (Process terminated with status 0)
+07/14 19:01:07 INFO |  unittest:0113| Unit test log collected and available under /usr/local/autotest/results/default/kvm.qemu-kvm-git.unittests/debug/emulator.log
+07/14 19:01:07 INFO |  unittest:0052| Running hypercall
+07/14 19:01:07 INFO |    kvm_vm:0782| Running qemu command:
+/usr/local/autotest/tests/kvm/qemu -name 'vm1' -nodefaults -vga std -monitor unix:'/tmp/monitor-humanmonitor1-20110714-184944-6ms0',server,nowait -qmp unix:'/tmp/monitor-qmpmonitor1-20110714-184944-6ms0',server,nowait -serial unix:'/tmp/serial-20110714-184944-6ms0',server,nowait -m 512 -smp 2 -kernel '/usr/local/autotest/tests/kvm/unittests/hypercall.flat' -vnc :0 -chardev file,id=testlog,path=/tmp/testlog-20110714-184944-6ms0 -device testdev,chardev=testlog  -S
+07/14 19:01:08 INFO |  unittest:0096| Waiting for unittest hypercall to complete, timeout 600, output in /tmp/testlog-20110714-184944-6ms0
+07/14 19:01:08 INFO |   aexpect:0783| (qemu) (Process terminated with status 0)
+07/14 19:01:09 INFO |  unittest:0113| Unit test log collected and available under /usr/local/autotest/results/default/kvm.qemu-kvm-git.unittests/debug/hypercall.log
+07/14 19:01:09 INFO |  unittest:0052| Running idt_test
+07/14 19:01:09 INFO |    kvm_vm:0782| Running qemu command:
+/usr/local/autotest/tests/kvm/qemu -name 'vm1' -nodefaults -vga std -monitor unix:'/tmp/monitor-humanmonitor1-20110714-184944-6ms0',server,nowait -qmp unix:'/tmp/monitor-qmpmonitor1-20110714-184944-6ms0',server,nowait -serial unix:'/tmp/serial-20110714-184944-6ms0',server,nowait -m 512 -smp 2 -kernel '/usr/local/autotest/tests/kvm/unittests/idt_test.flat' -vnc :0 -chardev file,id=testlog,path=/tmp/testlog-20110714-184944-6ms0 -device testdev,chardev=testlog  -S
+07/14 19:01:10 INFO |  unittest:0096| Waiting for unittest idt_test to complete, timeout 600, output in /tmp/testlog-20110714-184944-6ms0
+07/14 19:01:10 INFO |   aexpect:0783| (qemu) (Process terminated with status 0)
+07/14 19:01:11 INFO |  unittest:0113| Unit test log collected and available under /usr/local/autotest/results/default/kvm.qemu-kvm-git.unittests/debug/idt_test.log
+07/14 19:01:11 INFO |  unittest:0052| Running msr
+07/14 19:01:11 INFO |    kvm_vm:0782| Running qemu command:
+/usr/local/autotest/tests/kvm/qemu -name 'vm1' -nodefaults -vga std -monitor unix:'/tmp/monitor-humanmonitor1-20110714-184944-6ms0',server,nowait -qmp unix:'/tmp/monitor-qmpmonitor1-20110714-184944-6ms0',server,nowait -serial unix:'/tmp/serial-20110714-184944-6ms0',server,nowait -m 512 -smp 2 -kernel '/usr/local/autotest/tests/kvm/unittests/msr.flat' -vnc :0 -chardev file,id=testlog,path=/tmp/testlog-20110714-184944-6ms0 -device testdev,chardev=testlog  -S
+07/14 19:01:12 INFO |  unittest:0096| Waiting for unittest msr to complete, timeout 600, output in /tmp/testlog-20110714-184944-6ms0
+07/14 19:01:13 INFO |   aexpect:0783| (qemu) (Process terminated with status 0)
+07/14 19:01:13 INFO |  unittest:0113| Unit test log collected and available under /usr/local/autotest/results/default/kvm.qemu-kvm-git.unittests/debug/msr.log
+07/14 19:01:13 INFO |  unittest:0052| Running port80
+07/14 19:01:13 INFO |    kvm_vm:0782| Running qemu command:
+/usr/local/autotest/tests/kvm/qemu -name 'vm1' -nodefaults -vga std -monitor unix:'/tmp/monitor-humanmonitor1-20110714-184944-6ms0',server,nowait -qmp unix:'/tmp/monitor-qmpmonitor1-20110714-184944-6ms0',server,nowait -serial unix:'/tmp/serial-20110714-184944-6ms0',server,nowait -m 512 -smp 2 -kernel '/usr/local/autotest/tests/kvm/unittests/port80.flat' -vnc :0 -chardev file,id=testlog,path=/tmp/testlog-20110714-184944-6ms0 -device testdev,chardev=testlog  -S
+07/14 19:01:14 INFO |  unittest:0096| Waiting for unittest port80 to complete, timeout 600, output in /tmp/testlog-20110714-184944-6ms0
+07/14 19:01:31 INFO |   aexpect:0783| (qemu) (Process terminated with status 0)
+07/14 19:01:32 INFO |  unittest:0113| Unit test log collected and available under /usr/local/autotest/results/default/kvm.qemu-kvm-git.unittests/debug/port80.log
+07/14 19:01:32 INFO |  unittest:0052| Running realmode
+07/14 19:01:32 INFO |    kvm_vm:0782| Running qemu command:
+/usr/local/autotest/tests/kvm/qemu -name 'vm1' -nodefaults -vga std -monitor unix:'/tmp/monitor-humanmonitor1-20110714-184944-6ms0',server,nowait -qmp unix:'/tmp/monitor-qmpmonitor1-20110714-184944-6ms0',server,nowait -serial unix:'/tmp/serial-20110714-184944-6ms0',server,nowait -m 512 -smp 2 -kernel '/usr/local/autotest/tests/kvm/unittests/realmode.flat' -vnc :0 -chardev file,id=testlog,path=/tmp/testlog-20110714-184944-6ms0 -device testdev,chardev=testlog  -S
+07/14 19:01:33 INFO |  unittest:0096| Waiting for unittest realmode to complete, timeout 600, output in /tmp/testlog-20110714-184944-6ms0
+07/14 19:01:33 INFO |   aexpect:0783| (qemu) (Process terminated with status 0)
+07/14 19:01:34 INFO |  unittest:0113| Unit test log collected and available under /usr/local/autotest/results/default/kvm.qemu-kvm-git.unittests/debug/realmode.log
+07/14 19:01:34 INFO |  unittest:0052| Running sieve
+07/14 19:01:34 INFO |    kvm_vm:0782| Running qemu command:
+/usr/local/autotest/tests/kvm/qemu -name 'vm1' -nodefaults -vga std -monitor unix:'/tmp/monitor-humanmonitor1-20110714-184944-6ms0',server,nowait -qmp unix:'/tmp/monitor-qmpmonitor1-20110714-184944-6ms0',server,nowait -serial unix:'/tmp/serial-20110714-184944-6ms0',server,nowait -m 512 -smp 2 -kernel '/usr/local/autotest/tests/kvm/unittests/sieve.flat' -vnc :0 -chardev file,id=testlog,path=/tmp/testlog-20110714-184944-6ms0 -device testdev,chardev=testlog  -S
+07/14 19:01:35 INFO |  unittest:0096| Waiting for unittest sieve to complete, timeout 600, output in /tmp/testlog-20110714-184944-6ms0
+07/14 19:02:05 INFO |   aexpect:0783| (qemu) (Process terminated with status 0)
+07/14 19:02:05 INFO |  unittest:0113| Unit test log collected and available under /usr/local/autotest/results/default/kvm.qemu-kvm-git.unittests/debug/sieve.log
+07/14 19:02:05 INFO |  unittest:0052| Running tsc
+07/14 19:02:05 INFO |    kvm_vm:0782| Running qemu command:
+/usr/local/autotest/tests/kvm/qemu -name 'vm1' -nodefaults -vga std -monitor unix:'/tmp/monitor-humanmonitor1-20110714-184944-6ms0',server,nowait -qmp unix:'/tmp/monitor-qmpmonitor1-20110714-184944-6ms0',server,nowait -serial unix:'/tmp/serial-20110714-184944-6ms0',server,nowait -m 512 -smp 2 -kernel '/usr/local/autotest/tests/kvm/unittests/tsc.flat' -vnc :0 -chardev file,id=testlog,path=/tmp/testlog-20110714-184944-6ms0 -device testdev,chardev=testlog  -S
+07/14 19:02:06 INFO |  unittest:0096| Waiting for unittest tsc to complete, timeout 600, output in /tmp/testlog-20110714-184944-6ms0
+07/14 19:02:06 INFO |   aexpect:0783| (qemu) (Process terminated with status 0)
+07/14 19:02:07 INFO |  unittest:0113| Unit test log collected and available under /usr/local/autotest/results/default/kvm.qemu-kvm-git.unittests/debug/tsc.log
+07/14 19:02:07 INFO |  unittest:0052| Running xsave
+07/14 19:02:07 INFO |    kvm_vm:0782| Running qemu command:
+/usr/local/autotest/tests/kvm/qemu -name 'vm1' -nodefaults -vga std -monitor unix:'/tmp/monitor-humanmonitor1-20110714-184944-6ms0',server,nowait -qmp unix:'/tmp/monitor-qmpmonitor1-20110714-184944-6ms0',server,nowait -serial unix:'/tmp/serial-20110714-184944-6ms0',server,nowait -m 512 -smp 2 -kernel '/usr/local/autotest/tests/kvm/unittests/xsave.flat' -vnc :0 -chardev file,id=testlog,path=/tmp/testlog-20110714-184944-6ms0 -device testdev,chardev=testlog  -S
+07/14 19:02:08 INFO |  unittest:0096| Waiting for unittest xsave to complete, timeout 600, output in /tmp/testlog-20110714-184944-6ms0
+07/14 19:02:09 INFO |   aexpect:0783| (qemu) (Process terminated with status 0)
+07/14 19:02:09 INFO |  unittest:0113| Unit test log collected and available under /usr/local/autotest/results/default/kvm.qemu-kvm-git.unittests/debug/xsave.log
+07/14 19:02:09 INFO |  unittest:0052| Running rmap_chain
+07/14 19:02:09 INFO |    kvm_vm:0782| Running qemu command:
+/usr/local/autotest/tests/kvm/qemu -name 'vm1' -nodefaults -vga std -monitor unix:'/tmp/monitor-humanmonitor1-20110714-184944-6ms0',server,nowait -qmp unix:'/tmp/monitor-qmpmonitor1-20110714-184944-6ms0',server,nowait -serial unix:'/tmp/serial-20110714-184944-6ms0',server,nowait -m 512 -smp 2 -kernel '/usr/local/autotest/tests/kvm/unittests/rmap_chain.flat' -vnc :0 -chardev file,id=testlog,path=/tmp/testlog-20110714-184944-6ms0 -device testdev,chardev=testlog  -S
+07/14 19:02:11 INFO |  unittest:0096| Waiting for unittest rmap_chain to complete, timeout 600, output in /tmp/testlog-20110714-184944-6ms0
+07/14 19:02:12 INFO |   aexpect:0783| (qemu) (Process terminated with status 0)
+07/14 19:02:13 INFO |  unittest:0113| Unit test log collected and available under /usr/local/autotest/results/default/kvm.qemu-kvm-git.unittests/debug/rmap_chain.log
+07/14 19:02:13 INFO |  unittest:0052| Running svm
+07/14 19:02:13 INFO |    kvm_vm:0782| Running qemu command:
+/usr/local/autotest/tests/kvm/qemu -name 'vm1' -nodefaults -vga std -monitor unix:'/tmp/monitor-humanmonitor1-20110714-184944-6ms0',server,nowait -qmp unix:'/tmp/monitor-qmpmonitor1-20110714-184944-6ms0',server,nowait -serial unix:'/tmp/serial-20110714-184944-6ms0',server,nowait -m 512 -smp 2 -kernel '/usr/local/autotest/tests/kvm/unittests/svm.flat' -vnc :0 -chardev file,id=testlog,path=/tmp/testlog-20110714-184944-6ms0 -device testdev,chardev=testlog  -S -enable-nesting -cpu qemu64,+svm
+07/14 19:02:13 INFO |   aexpect:0783| (qemu) qemu: -enable-nesting: invalid option
+07/14 19:02:13 INFO |   aexpect:0783| (qemu) (Process terminated with status 1)
+07/14 19:02:13 ERROR|  unittest:0108| Exception happened during svm: VM creation command failed:    "/usr/local/autotest/tests/kvm/qemu -name 'vm1' -nodefaults -vga std -monitor unix:'/tmp/monitor-humanmonitor1-20110714-184944-6ms0',server,nowait -qmp unix:'/tmp/monitor-qmpmonitor1-20110714-184944-6ms0',server,nowait -serial unix:'/tmp/serial-20110714-184944-6ms0',server,nowait -m 512 -smp 2 -kernel '/usr/local/autotest/tests/kvm/unittests/svm.flat' -vnc :0 -chardev file,id=testlog,path=/tmp/testlog-20110714-184944-6ms0 -device testdev,chardev=testlog  -S -enable-nesting -cpu qemu64,+svm"    (status: 1,    output: 'qemu: -enable-nesting: invalid option\n')
+07/14 19:02:13 ERROR|  unittest:0115| Not possible to collect logs
+07/14 19:02:13 INFO |  unittest:0052| Running svm-disabled
+07/14 19:02:13 INFO |    kvm_vm:0782| Running qemu command:
+/usr/local/autotest/tests/kvm/qemu -name 'vm1' -nodefaults -vga std -monitor unix:'/tmp/monitor-humanmonitor1-20110714-184944-6ms0',server,nowait -qmp unix:'/tmp/monitor-qmpmonitor1-20110714-184944-6ms0',server,nowait -serial unix:'/tmp/serial-20110714-184944-6ms0',server,nowait -m 512 -smp 2 -kernel '/usr/local/autotest/tests/kvm/unittests/svm.flat' -vnc :0 -chardev file,id=testlog,path=/tmp/testlog-20110714-184944-6ms0 -device testdev,chardev=testlog  -S -cpu qemu64,-svm
+07/14 19:02:14 INFO |  unittest:0096| Waiting for unittest svm-disabled to complete, timeout 600, output in /tmp/testlog-20110714-184944-6ms0
+07/14 19:02:15 INFO |   aexpect:0783| (qemu) (Process terminated with status 0)
+07/14 19:02:16 INFO |  unittest:0113| Unit test log collected and available under /usr/local/autotest/results/default/kvm.qemu-kvm-git.unittests/debug/svm-disabled.log
+07/14 19:02:16 INFO |  unittest:0052| Running kvmclock_test
+07/14 19:02:16 INFO |    kvm_vm:0782| Running qemu command:
+/usr/local/autotest/tests/kvm/qemu -name 'vm1' -nodefaults -vga std -monitor unix:'/tmp/monitor-humanmonitor1-20110714-184944-6ms0',server,nowait -qmp unix:'/tmp/monitor-qmpmonitor1-20110714-184944-6ms0',server,nowait -serial unix:'/tmp/serial-20110714-184944-6ms0',server,nowait -m 512 -smp 2 -kernel '/usr/local/autotest/tests/kvm/unittests/kvmclock_test.flat' -vnc :0 -chardev file,id=testlog,path=/tmp/testlog-20110714-184944-6ms0 -device testdev,chardev=testlog  -S --append "10000000 `date +%s`"
+07/14 19:02:17 INFO |  unittest:0096| Waiting for unittest kvmclock_test to complete, timeout 600, output in /tmp/testlog-20110714-184944-6ms0
+07/14 19:02:33 INFO |   aexpect:0783| (qemu) (Process terminated with status 0)
+07/14 19:02:34 INFO |  unittest:0113| Unit test log collected and available under /usr/local/autotest/results/default/kvm.qemu-kvm-git.unittests/debug/kvmclock_test.log
+07/14 19:02:34 ERROR|       kvm:0094| Test failed: TestFail: Unit tests failed: apic svm
+```
+
+
+你可以看看unittests.cfg配置文件选项做一些你可能喜欢的调整，例如使超时考虑单元测试作为失败时可以较小以及其他事情。
+
+
+
+
+# Parallel Jobs
+
+Avocado-VT附带一个插件，可在已知的公共位置（默认是/tmp,但可以配置）创建锁定文件，以防止包含VT测试的多个作业运行。
+
+原因是，默认情况下，在同一个运行的多个作业可以访问相同的数据文件，并导致损坏。 数据文件的示例是客户机images，通常由测试直接或间接修改。
+
+
+## Checking Installation
+
+默认情况下安装并注册vt-joblock。 要确保它是活动的，请运行：
+
+``` stylus
+$ avocado plugins
+```
+
+应列出的 VT job锁插件：
+
+``` stylus
+Plugins that run before/after the execution of jobs (avocado.plugins.job.prepost):
+...
+vt-joblock Avocado-VT Job Lock/Unlock
+...
+```
+
+## Configuration
+
+
+vt-joblock插件的配置可以在/etc/avocado/conf.d/vt_joblock.conf找到。配置文件内容示例如下：
+
+``` stylus
+[plugins.vtjoblock]
+# Directory where the lock file will be located. Avocado should have permission
+# to write to this directory.
+dir=/tmp
+```
+
+配置键dir可让您设置Avocado在运行之前查找现有锁文件的目录，如果尚不存在，则创建一个。
+
+
+## Running Parallel Jobs
+
+
+假设在单个机器上有多个用户，使用不同的数据目录，您可以通过为每个用户设置不同的锁目录来允许并行VT作业。
+
+为此，您可以将自定义锁目录添加到用户自己的Avocado配置文件中。 从创建锁目录开始：
+
+``` stylus
+[user1@localhost] $ mkdir ~/avocado/data/avocado-vt/lockdir
+```
+
+然后修改用户自己的配置，使其指向新创建的锁目录：
+
+
+``` stylus
+[user1@localhost] $ cat >> ~/.config/avocado/avocado.conf <<EOF
+[plugins.vtjoblock]
+dir=/home/user1/avocado/data/avocado-vt/lockdir
+EOF
+```
+
+
+然后验证：
+
+``` stylus
+[user1@localhost] $ avocado config | grep plugins.vtjoblock
+...
+plugins.vtjoblock.dir          /home/user1/avocado/data/avocado-vt/lockdir
+...
+```
+
+对其他用户做同样的事情，他们的工作不会被彼此锁定。
+
+
+# Contribution and Community Guide
+
+Contents:
+
+## Contact information
+
+ - [Virt-test-devel mailing list (new mailing list hosted by red hat)][40]
+ - [IRC channel: irc.oftc.net #virt-test][41]
+
+
+## Downloading the Source
+
+
+主要来源在git上维护，可以克隆如下：
+
+``` stylus
+git clone https://github.com/avocado-framework/avocado-vt.git
+```
+
+如果你想学习如何使用git作为一个有效的贡献工具，请考虑阅读[git工作流程自动测试文档][42]
+
+## Avocado VT Development Workflow
+
+http://avocado-framework.readthedocs.org/en/latest/ContributionGuide.html
+
+
+## Contributions Guidelines and Tips
+
+
+### Code
+
+外加的测试和代码的贡献总是欢迎的。如果有疑问（或）关于处理特定问题的建议，在提交代码之前请联系项目成员（请参见\_collaboration部分），请查看[git repository configuration guidelines][43]。
+
+要提交更改，请按照以下[说明操作][44]。 维护人员最多需要两周时间才能提取并查看您的更改。 虽然，如果你想在任何阶段的帮助，请随时在邮件列表上发表并引用你的pull请求。
+
+
+### Docs
+
+请直接编辑文档以纠正任何细微的不准确或澄清项目。 首选标记语法是[ReStructuredText][45]，与现有文档中的约定和样式保持一致。 对于任何图形或图表，应使用web-friendly的格式，如PNG或SVG。
+
+避免使用'you'，'we'，'they'，因为它们在参考文档中可能含糊不清。 它在交流和电子邮件工作正常，但在参考资料看起来很奇怪。 同样，避免使用‘unnecessary’,，off-topic或其它语言。 例如在美国英语中， “Rinse and repeat”是一个有趣的短语，但当翻译成其他语言时可能会导致问题。 基本上，尽量避免任何减慢读者从事实发现的事情。
+
+# virttest
+
+ - [virttest package][46]
+   - [Subpackages][47]
+     - [virttest.libvirt_xml package][48]
+       - [Subpackages][49]
+       - [Submodules][50]
+       - [virttest.libvirt_xml.accessors module][51]
+       - [virttest.libvirt_xml.base module][52]
+       - [virttest.libvirt_xml.capability_xml module][53]
+       - [virttest.libvirt_xml.network_xml module][54]
+       - [virttest.libvirt_xml.nodedev_xml module][55]
+       - [virttest.libvirt_xml.nwfilter_xml module][56]
+       - [virttest.libvirt_xml.pool_xml module][57]
+       - [virttest.libvirt_xml.secret_xml module][58]
+       - [virttest.libvirt_xml.snapshot_xml module][59]
+       - [virttest.libvirt_xml.sysinfo_xml module][60]
+       - [virttest.libvirt_xml.vm_xml module][61]
+       - [virttest.libvirt_xml.vol_xml module][62]
+       - [virttest.libvirt_xml.xcepts module][63]
+       - [Module contents][64]
+     - [virttest.qemu_devices package][65]
+       - [Submodules][66]
+       - [virttest.qemu_devices.qbuses module][67]
+       - [virttest.qemu_devices.qcontainer module][68]
+       - [virttest.qemu_devices.qdevices module][69]
+       - [virttest.qemu_devices.utils module][70]
+       - [Module contents][71]
+     - [virttest.remote_commander package][72]
+       - [Submodules][73]
+       - [virttest.remote_commander.messenger module][74]
+       - [virttest.remote_commander.remote_interface module][75]
+       - [virttest.remote_commander.remote_master module][76]
+       - [virttest.remote_commander.remote_runner module][77]
+       - [Module contents][78]
+     - [virttest.staging package][79]
+       - [Subpackages][80]
+       - [Submodules][81]
+       - [virttest.staging.lv_utils module][82]
+       - [virttest.staging.service module][83]
+       - [virttest.staging.utils_cgroup module][84]
+       - [virttest.staging.utils_koji module][85]
+       - [virttest.staging.utils_memory module][86]
+       - [Module contents][87]
+     - [virttest.tests package][88]
+       - [Submodules][89]
+       - [virttest.tests.unattended_install module][90]
+       - [Module contents][91]
+     - [virttest.unittest_utils package][92]
+       - [Submodules][93]
+       - [virttest.unittest_utils.mock module][94]
+       - [Module contents][95]
+     - [virttest.utils_test package][96]
+       - [Subpackages][97]
+       - [Submodules][98]
+       - [virttest.utils_test.libguestfs module][99]
+       - [virttest.utils_test.libvirt module][100]
+       - [Module contents][101]
+   - [Submodules][102]
+   - [virttest.RFBDes module][103]
+   - [virttest.arch module][104]
+   - [virttest.asset module][105]
+   - [virttest.base_installer module][106]
+   - [virttest.bootstrap module][107]
+   - [virttest.build_helper module][108]
+   - [virttest.cartesian_config module][109]
+   - [virttest.ceph module][110]
+   - [virttest.data_dir module][111]
+   - [virttest.defaults module][112]
+   - [virttest.element_path module][113]
+   - [virttest.element_tree module][114]
+   - [virttest.env_process module][115]
+   - [virttest.error_context module][116]
+   - [virttest.funcatexit module][117]
+   - [virttest.gluster module][118]
+   - [virttest.guest_agent module][119]
+   - [virttest.http_server module][120]
+   - [virttest.installer module][121]
+   - [virttest.iscsi module][122]
+   - [virttest.libvirt_storage module][123]
+   - [virttest.libvirt_vm module][124]
+   - [virttest.lvm module][125]
+   - [virttest.lvsb module][126]
+   - [virttest.lvsb_base module][127]
+   - [virttest.lvsbs module][128]
+   - [virttest.nfs module][129]
+   - [virttest.openvswitch module][130]
+   - [virttest.ovirt module][131]
+   - [virttest.ovs_utils module][132]
+   - [virttest.passfd module][133]
+   - [virttest.passfd_setup module][134]
+   - [virttest.postprocess_iozone module][135]
+   - [virttest.ppm_utils module][136]
+   - [virttest.propcan module][137]
+   - [virttest.qemu_installer module][138]
+   - [virttest.qemu_io module][139]
+   - [virttest.qemu_monitor module][140]
+   - [virttest.qemu_qtree module][141]
+   - [virttest.qemu_storage module][142]
+   - [virttest.qemu_virtio_port module][143]
+   - [virttest.qemu_vm module][144]
+   - [virttest.remote module][145]
+   - [virttest.remote_build module][146]
+   - [virttest.rss_client module][147]
+   - [virttest.scan_autotest_results module][148]
+   - [virttest.scheduler module][149]
+   - [virttest.ssh_key module][150]
+   - [virttest.standalone_test module][151]
+   - [virttest.step_editor module][152]
+   - [virttest.storage module][153]
+   - [virttest.syslog_server module][154]
+   - [virttest.test_setup module][155]
+   - [virttest.utils_config module][156]
+   - [virttest.utils_conn module][157]
+   - [virttest.utils_disk module][158]
+   - [virttest.utils_env module][159]
+   - [virttest.utils_gdb module][160]
+   - [virttest.utils_libguestfs module][161]
+   - [virttest.utils_libvirtd module][162]
+   - [virttest.utils_misc module][163]
+   - [virttest.utils_net module][164]
+   - [virttest.utils_netperf module][165]
+   - [virttest.utils_params module][166]
+   - [virttest.utils_sasl module][167]
+   - [virttest.utils_selinux module][168]
+   - [virttest.utils_spice module][169]
+   - [virttest.utils_v2v module][170]
+   - [virttest.utils_virtio_port module][171]
+   - [virttest.version module][172]
+   - [virttest.versionable_class module][173]
+   - [virttest.video_maker module][174]
+   - [virttest.virsh module][175]
+   - [virttest.virt_vm module][176]
+   - [virttest.xml_utils module][177]
+   - [virttest.yumrepo module][178]
+   - [Module contents][179]
+
+
+# Cartesian Config
+
+笛卡尔配置格式的参考文档。
+
+内容：
+
+ - [Parameters][180]
+   - [Addressing objects (VMs, images, NICs etc)][181]
+   - [Parameters used by the test dispatching system][182]
+   - [Parameters used by the preprocessor][183]
+   - [Parameters used by the postprocessor][184]
+   - [Test parameters][185]
+   - [Real world example][186]
+ - [Cartesian Config Reference][187]
+   - [bridge][188]
+   - [cdroms][189]
+   - [cd_format][190]
+   - [check_image][191]
+   - [convert_ppm_files_to_png][192]
+   - [create_image][193]
+   - [display][194]
+   - [drive_cache][195]
+   - [drive_format][196]
+   - [drive_index][197]
+   - [drive_werror][198]
+   - [drive_serial][199]
+   - [file_transfer_client][200]
+   - [file_transfer_port][201]
+   - [force_create_image][202]
+   - [guest_port][203]
+   - [guest_port_remote_shell][204]
+   - [guest_port_file_tranfer][205]
+   - [guest_port_unattended_install][206]
+   - [images][207]
+   - [images_good][208]
+   - [image_format][209]
+   - [image_name][210]
+   - [image_raw_device][211]
+   - [image_size][212]
+   - [keep_ppm_files][213]
+   - [keep_screendumps][214]
+   - [kill_unresponsive_vms][215]
+   - [kill_vm][216]
+   - [kill_vm_gracefully][217]
+   - [kill_vm_timeout][218]
+   - [login_timeout][219]
+   - [main_monitor][220]
+   - [main_vm][221]
+   - [mem][222]
+   - [migration_mode][223]
+   - [monitors][224]
+   - [monitor_type][225]
+   - [nic_mode][226]
+   - [nics][227]
+   - [pre_command][228]
+   - [pre_command_timeout][229]
+   - [pre_command_noncritical][230]
+   - [profilers][231]
+   - [post_command][232]
+   - [post_command_timeout][233]
+   - [post_command_noncritical][234]
+   - [qemu_binary][235]
+   - [qemu_img_binary][236]
+   - [qxl_dev_nr][237]
+   - [qxl][238]
+   - [redirs][239]
+   - [remove_image][240]
+   - [spice][241]
 
 
 
@@ -2578,3 +3564,211 @@ $ qemu-system-x86_64 --enable-kvm -smp 4 -m 2048 -drive file=gluster://satheesh.
   [31]: ./images/nested-virt.png "nested-virt.png"
   [32]: ./images/multihost-migration.png "multihost-migration.png"
   [33]: http://avocado-vt.readthedocs.io/en/latest/_downloads/multihost-migration.odg
+  [34]: http://avocado-vt.readthedocs.io/en/latest/contributing/DownloadSource.html
+  [35]: http://avocado-vt.readthedocs.io/en/latest/RunQemuUnittests.html#run-kvm-unit-tests-in-avocado
+  [36]: http://avocado-vt.readthedocs.io/en/latest/RunQemuUnittests.html#run-kvm-unit-tests-in-avocado-vt
+  [37]: http://avocado-vt.readthedocs.io/en/latest/InstallOptionalPackages.html
+  [38]: git%20clone%20https://github.com/avocado-framework/avocado-vt.git
+  [39]: http://avocado-vt.readthedocs.io/en/latest/GetStartedGuide.html
+  [40]: http://www.redhat.com/mailman/listinfo/virt-test-devel
+  [41]: irc://irc.oftc.net/#virt-test
+  [42]: https://github.com/autotest/autotest/wiki/GitWorkflow
+  [43]: http://github.com/autotest/autotest/wiki/GitWorkflow
+  [44]: https://github.com/autotest/autotest/wiki/SubmissionChecklist
+  [45]: http://en.wikipedia.org/wiki/ReStructuredText
+  [46]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html
+  [47]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#subpackages
+  [48]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.libvirt_xml.html
+  [49]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.libvirt_xml.html#subpackages
+  [50]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.libvirt_xml.html#submodules
+  [51]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.libvirt_xml.html#virttest-libvirt-xml-accessors-module
+  [52]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.libvirt_xml.html#virttest-libvirt-xml-base-module
+  [53]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.libvirt_xml.html#virttest-libvirt-xml-capability-xml-module
+  [54]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.libvirt_xml.html#virttest-libvirt-xml-network-xml-module
+  [55]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.libvirt_xml.html#virttest-libvirt-xml-nodedev-xml-module
+  [56]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.libvirt_xml.html#virttest-libvirt-xml-nwfilter-xml-module
+  [57]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.libvirt_xml.html#virttest-libvirt-xml-pool-xml-module
+  [58]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.libvirt_xml.html#virttest-libvirt-xml-secret-xml-module
+  [59]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.libvirt_xml.html#virttest-libvirt-xml-snapshot-xml-module
+  [60]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.libvirt_xml.html#virttest-libvirt-xml-sysinfo-xml-module
+  [61]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.libvirt_xml.html#virttest-libvirt-xml-vm-xml-module
+  [62]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.libvirt_xml.html#virttest-libvirt-xml-vol-xml-module
+  [63]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.libvirt_xml.html#virttest-libvirt-xml-xcepts-module
+  [64]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.libvirt_xml.html#module-contents
+  [65]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.qemu_devices.html
+  [66]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.qemu_devices.html#submodules
+  [67]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.qemu_devices.html#virttest-qemu-devices-qbuses-module
+  [68]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.qemu_devices.html#virttest-qemu-devices-qcontainer-module
+  [69]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.qemu_devices.html#virttest-qemu-devices-qdevices-module
+  [70]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.qemu_devices.html#module-virttest.qemu_devices.utils
+  [71]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.qemu_devices.html#module-virttest.qemu_devices
+  [72]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.remote_commander.html
+  [73]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.remote_commander.html#submodules
+  [74]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.remote_commander.html#module-virttest.remote_commander.messenger
+  [75]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.remote_commander.html#module-virttest.remote_commander.remote_interface
+  [76]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.remote_commander.html#module-virttest.remote_commander.remote_master
+  [77]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.remote_commander.html#module-virttest.remote_commander.remote_runner
+  [78]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.remote_commander.html#module-virttest.remote_commander
+  [79]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.staging.html
+  [80]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.staging.html#subpackages
+  [81]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.staging.html#submodules
+  [82]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.staging.html#virttest-staging-lv-utils-module
+  [83]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.staging.html#virttest-staging-service-module
+  [84]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.staging.html#virttest-staging-utils-cgroup-module
+  [85]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.staging.html#virttest-staging-utils-koji-module
+  [86]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.staging.html#virttest-staging-utils-memory-module
+  [87]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.staging.html#module-contents
+  [88]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.tests.html
+  [89]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.tests.html#submodules
+  [90]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.tests.html#virttest-tests-unattended-install-module
+  [91]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.tests.html#module-contents
+  [92]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.unittest_utils.html
+  [93]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.unittest_utils.html#submodules
+  [94]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.unittest_utils.html#module-virttest.unittest_utils.mock
+  [95]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.unittest_utils.html#module-virttest.unittest_utils
+  [96]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.utils_test.html
+  [97]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.utils_test.html#subpackages
+  [98]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.utils_test.html#submodules
+  [99]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.utils_test.html#virttest-utils-test-libguestfs-module
+  [100]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.utils_test.html#virttest-utils-test-libvirt-module
+  [101]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.utils_test.html#module-contents
+  [102]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#submodules
+  [103]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#virttest-rfbdes-module
+  [104]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#virttest-arch-module
+  [105]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#virttest-asset-module
+  [106]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#virttest-base-installer-module
+  [107]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#virttest-bootstrap-module
+  [108]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#virttest-build-helper-module
+  [109]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#module-virttest.cartesian_config
+  [110]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#virttest-ceph-module
+  [111]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#virttest-data-dir-module
+  [112]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#module-virttest.defaults
+  [113]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#module-virttest.element_path
+  [114]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#module-virttest.element_tree
+  [115]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#virttest-env-process-module
+  [116]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#module-virttest.error_context
+  [117]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#virttest-funcatexit-module
+  [118]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#virttest-gluster-module
+  [119]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#virttest-guest-agent-module
+  [120]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#module-virttest.http_server
+  [121]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#virttest-installer-module
+  [122]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#virttest-iscsi-module
+  [123]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#virttest-libvirt-storage-module
+  [124]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#virttest-libvirt-vm-module
+  [125]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#virttest-lvm-module
+  [126]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#module-virttest.lvsb
+  [127]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#module-virttest.lvsb_base
+  [128]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#virttest-lvsbs-module
+  [129]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#virttest-nfs-module
+  [130]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#virttest-openvswitch-module
+  [131]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#virttest-ovirt-module
+  [132]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#virttest-ovs-utils-module
+  [133]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#virttest-passfd-module
+  [134]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#virttest-passfd-setup-module
+  [135]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#virttest-postprocess-iozone-module
+  [136]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#module-virttest.ppm_utils
+  [137]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#module-virttest.propcan
+  [138]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#virttest-qemu-installer-module
+  [139]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#virttest-qemu-io-module
+  [140]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#virttest-qemu-monitor-module
+  [141]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#virttest-qemu-qtree-module
+  [142]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#virttest-qemu-storage-module
+  [143]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#virttest-qemu-virtio-port-module
+  [144]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#virttest-qemu-vm-module
+  [145]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#virttest-remote-module
+  [146]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#virttest-remote-build-module
+  [147]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#module-virttest.rss_client
+  [148]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#module-virttest.scan_autotest_results
+  [149]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#virttest-scheduler-module
+  [150]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#virttest-ssh-key-module
+  [151]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#virttest-standalone-test-module
+  [152]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#virttest-step-editor-module
+  [153]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#virttest-storage-module
+  [154]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#module-virttest.syslog_server
+  [155]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#virttest-test-setup-module
+  [156]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#module-virttest.utils_config
+  [157]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#virttest-utils-conn-module
+  [158]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#virttest-utils-disk-module
+  [159]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#virttest-utils-env-module
+  [160]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#virttest-utils-gdb-module
+  [161]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#virttest-utils-libguestfs-module
+  [162]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#virttest-utils-libvirtd-module
+  [163]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#virttest-utils-misc-module
+  [164]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#virttest-utils-net-module
+  [165]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#virttest-utils-netperf-module
+  [166]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#virttest-utils-params-module
+  [167]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#virttest-utils-sasl-module
+  [168]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#virttest-utils-selinux-module
+  [169]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#virttest-utils-spice-module
+  [170]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#virttest-utils-v2v-module
+  [171]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#virttest-utils-virtio-port-module
+  [172]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#virttest-version-module
+  [173]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#module-virttest.versionable_class
+  [174]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#module-virttest.video_maker
+  [175]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#virttest-virsh-module
+  [176]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#virttest-virt-vm-module
+  [177]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#module-virttest.xml_utils
+  [178]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#module-virttest.yumrepo
+  [179]: http://avocado-vt.readthedocs.io/en/latest/api/virttest.html#module-virttest
+  [180]: http://avocado-vt.readthedocs.io/en/latest/cartesian/CartesianConfigParametersIntro.html
+  [181]: http://avocado-vt.readthedocs.io/en/latest/cartesian/CartesianConfigParametersIntro.html#addressing-objects-vms-images-nics-etc
+  [182]: http://avocado-vt.readthedocs.io/en/latest/cartesian/CartesianConfigParametersIntro.html#parameters-used-by-the-test-dispatching-system
+  [183]: http://avocado-vt.readthedocs.io/en/latest/cartesian/CartesianConfigParametersIntro.html#parameters-used-by-the-preprocessor
+  [184]: http://avocado-vt.readthedocs.io/en/latest/cartesian/CartesianConfigParametersIntro.html#parameters-used-by-the-postprocessor
+  [185]: http://avocado-vt.readthedocs.io/en/latest/cartesian/CartesianConfigParametersIntro.html#test-parameters
+  [186]: http://avocado-vt.readthedocs.io/en/latest/cartesian/CartesianConfigParametersIntro.html#real-world-example
+  [187]: http://avocado-vt.readthedocs.io/en/latest/cartesian/CartesianConfigReference.html
+  [188]: http://avocado-vt.readthedocs.io/en/latest/cartesian/CartesianConfigReference-KVM-bridge.html
+  [189]: http://avocado-vt.readthedocs.io/en/latest/cartesian/CartesianConfigReference-KVM-cdroms.html
+  [190]: http://avocado-vt.readthedocs.io/en/latest/cartesian/CartesianConfigReference-KVM-cd_format.html
+  [191]: http://avocado-vt.readthedocs.io/en/latest/cartesian/CartesianConfigReference-KVM-check_image.html
+  [192]: http://avocado-vt.readthedocs.io/en/latest/cartesian/CartesianConfigReference-KVM-convert_ppm_files_to_png.html
+  [193]: http://avocado-vt.readthedocs.io/en/latest/cartesian/CartesianConfigReference-KVM-create_image.html
+  [194]: http://avocado-vt.readthedocs.io/en/latest/cartesian/CartesianConfigReference-KVM-display.html
+  [195]: http://avocado-vt.readthedocs.io/en/latest/cartesian/CartesianConfigReference-KVM-drive_cache.html
+  [196]: http://avocado-vt.readthedocs.io/en/latest/cartesian/CartesianConfigReference-KVM-drive_format.html
+  [197]: http://avocado-vt.readthedocs.io/en/latest/cartesian/CartesianConfigReference-KVM-drive_index.html
+  [198]: http://avocado-vt.readthedocs.io/en/latest/cartesian/CartesianConfigReference-KVM-drive_werror.html
+  [199]: http://avocado-vt.readthedocs.io/en/latest/cartesian/CartesianConfigReference-KVM-drive_serial.html
+  [200]: http://avocado-vt.readthedocs.io/en/latest/cartesian/CartesianConfigReference-KVM-file_transfer_client.html
+  [201]: http://avocado-vt.readthedocs.io/en/latest/cartesian/CartesianConfigReference-KVM-file_transfer_port.html
+  [202]: http://avocado-vt.readthedocs.io/en/latest/cartesian/CartesianConfigReference-KVM-force_create_image.html
+  [203]: http://avocado-vt.readthedocs.io/en/latest/cartesian/CartesianConfigReference-KVM-guest_port.html
+  [204]: http://avocado-vt.readthedocs.io/en/latest/cartesian/CartesianConfigReference-KVM-guest_port_remote_shell.html
+  [205]: http://avocado-vt.readthedocs.io/en/latest/cartesian/CartesianConfigReference-KVM-guest_port_file_transfer.html
+  [206]: http://avocado-vt.readthedocs.io/en/latest/cartesian/CartesianConfigReference-KVM-guest_port_unattended_install.html
+  [207]: http://avocado-vt.readthedocs.io/en/latest/cartesian/CartesianConfigReference-KVM-images.html
+  [208]: http://avocado-vt.readthedocs.io/en/latest/cartesian/CartesianConfigReference-KVM-images_good.html
+  [209]: http://avocado-vt.readthedocs.io/en/latest/cartesian/CartesianConfigReference-KVM-image_format.html
+  [210]: http://avocado-vt.readthedocs.io/en/latest/cartesian/CartesianConfigReference-KVM-image_name.html
+  [211]: http://avocado-vt.readthedocs.io/en/latest/cartesian/CartesianConfigReference-KVM-image_raw_device.html
+  [212]: http://avocado-vt.readthedocs.io/en/latest/cartesian/CartesianConfigReference-KVM-image_size.html
+  [213]: http://avocado-vt.readthedocs.io/en/latest/cartesian/CartesianConfigReference-KVM-keep_ppm_files.html
+  [214]: http://avocado-vt.readthedocs.io/en/latest/cartesian/CartesianConfigReference-KVM-keep_screendumps.html
+  [215]: http://avocado-vt.readthedocs.io/en/latest/cartesian/CartesianConfigReference-KVM-kill_unresponsive_vms.html
+  [216]: http://avocado-vt.readthedocs.io/en/latest/cartesian/CartesianConfigReference-KVM-kill_vm.html
+  [217]: http://avocado-vt.readthedocs.io/en/latest/cartesian/CartesianConfigReference-KVM-kill_vm_gracefully.html
+  [218]: http://avocado-vt.readthedocs.io/en/latest/cartesian/CartesianConfigReference-KVM-kill_vm_timeout.html
+  [219]: http://avocado-vt.readthedocs.io/en/latest/cartesian/CartesianConfigReference-KVM-login_timeout.html
+  [220]: http://avocado-vt.readthedocs.io/en/latest/cartesian/CartesianConfigReference-KVM-main_monitor.html
+  [221]: http://avocado-vt.readthedocs.io/en/latest/cartesian/CartesianConfigReference-KVM-main_vm.html
+  [222]: http://avocado-vt.readthedocs.io/en/latest/cartesian/CartesianConfigReference-KVM-mem.html
+  [223]: http://avocado-vt.readthedocs.io/en/latest/cartesian/CartesianConfigReference-KVM-migration_mode.html
+  [224]: http://avocado-vt.readthedocs.io/en/latest/cartesian/CartesianConfigReference-KVM-monitors.html
+  [225]: http://avocado-vt.readthedocs.io/en/latest/cartesian/CartesianConfigReference-KVM-monitor_type.html
+  [226]: http://avocado-vt.readthedocs.io/en/latest/cartesian/CartesianConfigReference-KVM-nic_mode.html
+  [227]: http://avocado-vt.readthedocs.io/en/latest/cartesian/CartesianConfigReference-KVM-nics.html
+  [228]: http://avocado-vt.readthedocs.io/en/latest/cartesian/CartesianConfigReference-KVM-pre_command.html
+  [229]: http://avocado-vt.readthedocs.io/en/latest/cartesian/CartesianConfigReference-KVM-pre_command_timeout.html
+  [230]: http://avocado-vt.readthedocs.io/en/latest/cartesian/CartesianConfigReference-KVM-pre_command_noncritical.html
+  [231]: http://avocado-vt.readthedocs.io/en/latest/cartesian/CartesianConfigReference-KVM-profilers.html
+  [232]: http://avocado-vt.readthedocs.io/en/latest/cartesian/CartesianConfigReference-KVM-post_command.html
+  [233]: http://avocado-vt.readthedocs.io/en/latest/cartesian/CartesianConfigReference-KVM-post_command_timeout.html
+  [234]: http://avocado-vt.readthedocs.io/en/latest/cartesian/CartesianConfigReference-KVM-post_command_noncritical.html
+  [235]: http://avocado-vt.readthedocs.io/en/latest/cartesian/CartesianConfigReference-KVM-qemu_binary.html
+  [236]: http://avocado-vt.readthedocs.io/en/latest/cartesian/CartesianConfigReference-KVM-qemu_img_binary.html
+  [237]: http://avocado-vt.readthedocs.io/en/latest/cartesian/CartesianConfigReference-KVM-qxl_dev_nr.html
+  [238]: http://avocado-vt.readthedocs.io/en/latest/cartesian/CartesianConfigReference-KVM-qxl.html
+  [239]: http://avocado-vt.readthedocs.io/en/latest/cartesian/CartesianConfigReference-KVM-redirs.html
+  [240]: http://avocado-vt.readthedocs.io/en/latest/cartesian/CartesianConfigReference-KVM-remove_image.html
+  [241]: http://avocado-vt.readthedocs.io/en/latest/cartesian/CartesianConfigReference-KVM-spice.html
