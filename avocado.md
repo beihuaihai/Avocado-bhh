@@ -117,7 +117,9 @@ sudo python setup.py install
 ```
 
 
-如果你想秘密访问Avocado，你可以刻查看链接*Hacking and Using Avocado*（[enter description here][4]）。
+如果你打算攻击Avocado，你可能想看看 [Hacking and Using Avocado][4] 。
+
+
 
 
 ## Installing from standard Python tools
@@ -157,7 +159,7 @@ JOB HTML  : $HOME/avocado/job-results/job-2014-08-12T15.39-381b849a/html/results
 ```
 
 
-你可能注意到我们使用/bin/true做一个测试文件，并且结果符合我们的预期，它通过了！这是已知的一个简单测试，但还有其他类型的测试，如*instrumented tests*。更多的信息可以查看链接[Test Types][5]，继续阅读：
+你可能注意到我们使用/bin/true做一个测试文件，并且结果符合我们的预期，它通过了！这是已知的一个简单测试，但还有其他类型的测试，如*instrumented tests*。更多的信息可以查看链接[Test Types][6]，继续阅读：
 
 Note：
 尽管在大多数情况下，如下运行测试命令：
@@ -387,16 +389,16 @@ class SleepTest(Test):
 
 ## Multiple tests and naming conventions
 在一个单独的类中，可以有多种test函数。
-为了这样做，可以选择一种命名方式，如以*test*开头，可以有*test_foo*，*test_bar*等等。我们建议你遵循  [PEP8 Function Names][6] 章节定义的那样的命名方式。
+为了这样做，可以选择一种命名方式，如以*test*开头，可以有*test_foo*，*test_bar*等等。我们建议你遵循  [PEP8 Function Names][7] 章节定义的那样的命名方式。
 
-对于类的名字，你可以选择任何你喜欢的，但我们仍建议你依照CamelCase约定，大家耳熟能详的*CapWords*定义在 [Class Names][7]下面的PEP 8文档里。
+对于类的名字，你可以选择任何你喜欢的，但我们仍建议你依照CamelCase约定，大家耳熟能详的*CapWords*定义在 [Class Names][8]下面的PEP 8文档里。
 
 ## Convenience Attributes
 
 测试类给我们提供了许多便捷的属性：
 
  - 打算在测试中使用log工具，那可能需要通过访问*self.log*的方式，让你可以查看debug的日志，信息，错误和警告信息。
- - 一个参数的 passing system（和fetching system）可能会通过*self.params*的方式去访问。这是一种*Multiplexer*技术，你可以在[Test variants-Mux][8]中发现更多的信息。
+ - 一个参数的 passing system（和fetching system）可能会通过*self.params*的方式去访问。这是一种*Multiplexer*技术，你可以在[Test variants-Mux][9]中发现更多的信息。
 
 
 ## Saving test generated (custom) data
@@ -427,7 +429,7 @@ sleeptest:
         long:
             sleep_length: 5
 ```
-当通过命令*avocado run $test --mux-yaml $file.yaml*启动这个例子时，三个可变类型被执行，并且内容被加入到*/run*的命名空间（详见*Test variants - Mux*（[enter description here][9]））。每个变体包含可变的"type"和"sleep_length"。为了获得现在的值，你需要有名称（"sleep_length"）和它的路径。路径不同于每个变体，所以需要路径中最合适的部分，在这个例子中： /run/sleeptest/length/\*  或者也许  sleeptest/\*可能就足够了。它依赖于你是怎样设置的。
+当通过命令*avocado run $test --mux-yaml $file.yaml*启动这个例子时，三个可变类型被执行，并且内容被加入到*/run*的命名空间（详见 [Test variants - Mux][10]）。每个变体包含可变的"type"和"sleep_length"。为了获得现在的值，你需要有名称（"sleep_length"）和它的路径。路径不同于每个变体，所以需要路径中最合适的部分，在这个例子中： /run/sleeptest/length/\*  或者也许  sleeptest/\*可能就足够了。它依赖于你是怎样设置的。
 
 默认值是可供选择的，但总要考虑去很好的处理他们。一些人可能用不同的参数或者什么参数也没有使用去执行你的测试文件。它应该都能完美的支持。
 
@@ -451,7 +453,7 @@ self.params.get("sleep_length", default=1)
 
 考虑到路径总是要考虑到所有使用者。通常使用附加的变量去扩展默认配置，或者组合不同的路径产生一个使用者需要的正确的情境。使用者可以在其它地方引入值（例如：/run/sleeptest => /upstream/sleeptest）或者合并其它冲突文件到默认路径，这将避免冲突，不过将返回的是他们的替代值。然后你需要阐明路径（例如:'\*' = sleeptest/\*）。
 
-更多的信息在[Test variants - Mux][10]。
+更多的信息在[Test variants - Mux][11]。
 
 ## Using a multiplex file
 可以使用带有 multiplex文件的Avocado运行器去提供参数和产生矩阵给sleeptest，如下：
@@ -468,7 +470,7 @@ RESULTS    : PASS 3 | ERROR 0 | FAIL 0 | SKIP 0 | WARN 0 | INTERRUPT 0
 TESTS TIME : 6.50 s
 JOB HTML   : $HOME/avocado/job-results/job-2014-08-12T15.44-d565e8de/html/results.html
 ```
-选项 *--mux-yaml*要么从 *$FILE_LOCATION* 要么从*$INJECT_TO:$FILE_LOCATION*获取值。就像在[Test variants - Mux ][11]解释的那样，没有任何路径被加入到 /run，去做默认的相对路径。*$INJECT_TO*要么给出相对路径，那么它的位置 */run/$INJECT_TO*，要么给出绝对路径（以'/'开始），那么它就直接使用指定的位置并且直到测试或者框架的开发者从定位中获取值（使用路径或者添加路径是到 *mux-path*）。要明白执行这些命令的不同之处：
+选项 *--mux-yaml*要么从 *$FILE_LOCATION* 要么从*$INJECT_TO:$FILE_LOCATION*获取值。就像在[Test variants - Mux ][12]解释的那样，没有任何路径被加入到 /run，去做默认的相对路径。*$INJECT_TO*要么给出相对路径，那么它的位置 */run/$INJECT_TO*，要么给出绝对路径（以'/'开始），那么它就直接使用指定的位置并且直到测试或者框架的开发者从定位中获取值（使用路径或者添加路径是到 *mux-path*）。要明白执行这些命令的不同之处：
 
 ``` stylus
 $ avocado multiplex -t -m examples/tests/sleeptest.py.data/sleeptest.yaml
@@ -1276,7 +1278,7 @@ PATH=$(avocado "exec-path"):$PATH
 
 我们推荐你看一看在*examples/tests*目录中的一些现在测试的例子，包含了一些可以让你找到灵感的例子。那个目录除了包含一些例子，也被用于Avocado self测试套件去做一些Avocado自身的一些功能测试。
 
-推荐看看[API Reference][12]。有更多的可能性。
+推荐看看[API Reference][13]。有更多的可能性。
 
 # Result Formats
 一个测试运行器必须提供各种各样的方法和感兴趣的部分包括人类或者机器去交流结果。
@@ -1367,7 +1369,7 @@ TestFail: This test is supposed to fail
 在选项中的破折号-  *-xunit*，它的意思是xunit结果应该标准输出。
 
 ### json
-[JSON][13]被广泛用于数据格式转换。Avocado插件json输出job信息，类似于xunit的输出插件：
+[JSON][14]被广泛用于数据格式转换。Avocado插件json输出job信息，类似于xunit的输出插件：
 
 ``` stylus
 $ avocado run sleeptest.py failtest.py synctest.py --json -
@@ -1510,12 +1512,12 @@ Avocado退出代码尽力去表示在执行过程中发生的不同的事情。�
 
 但是，如果你的结果实现是在每个测试结果前后连续的输出信息，不得不实现老式接口。创造一个类继承自*avocado.core.result.Result*并且实现所有的公共函数，为每个测试阶段执行动作（写到一个文件或流中）。
 
-你可以查看[Plugin System][14]获取更多的信息，关于如何编写一个插件用于激活和执行新的结果格式。
+你可以查看[Plugin System][15]获取更多的信息，关于如何编写一个插件用于激活和执行新的结果格式。
  
 #  Configuration
  Avocado工具有一定的基于指导的默认行为，合理的（我们希望是）猜测关于用户喜欢如何使用他们的系统。当然，不同的人会有不同的需求，并且可能不喜欢我们的默认值，那也是为什么一个配置系统用来处理这些情况。
  
- Avocado配置文件的格式是基于INI（informal）文件设置的，[ INI file ‘specification’][15]，由Python的*configparser*来实施。这个格式是简单而直接的，由许多的键值对构成。以一个基本的Avocado配置文件为例：
+ Avocado配置文件的格式是基于INI（informal）文件设置的，[ INI file ‘specification’][16]，由Python的*configparser*来实施。这个格式是简单而直接的，由许多的键值对构成。以一个基本的Avocado配置文件为例：
  
  
 
@@ -1721,7 +1723,7 @@ avocado run –store-logging-stream [STREAM[:LEVEL] [STREAM[:LEVEL] ...]],
 
 这听起来和Jenkins的稀疏矩阵相似，不同的地方是：avocado替换了filters，但也是可以使用的，avocado允许指定*mux domains*，它是表现数据的一种更好的方式。把数据用树来表示，树创建于每个域中所有可能的变量并且把他们结合在一起。它听起来有点复杂，但实际上它遵循人们经常定义的依赖关系的方式，因此，它使用起来非常容易，甚至在复杂的案子中也很清晰明了。
 
-最好的解释通常来自例子，所以随意的向下滚动到段落[yaml_to_mux plugin][16]，你可以使用默认的mux插件去学习Mux。
+最好的解释通常来自例子，所以随意的向下滚动到段落[yaml_to_mux plugin][17]，你可以使用默认的mux插件去学习Mux。
 
 ## Mux internals
 *Mux*是Avocado的核心部分，使用者可以把它看做一个*multiplexed*数据库，我们研究树中这些关联路径的键值对，我们称这些路径为节点*Nodes*。
@@ -1735,7 +1737,7 @@ self.params.get(key="my_key", path="/some/location/*",
 让我们回到Mux一会。正如前面提到的，它是一个允许存储测试参数的多元变量的数据库。填写数据库，你可以使用的几个命令：
 
  1. *--mux-inject*  -直接引入命令行参数（看 *avocado multiplex -h*）的值 [path:]key:node
- 2. *yaml_to_mux plugin*  -允许解析*yaml*文件到Mux数据库（看[yaml_to_mux plugin][17]）
+ 2. *yaml_to_mux plugin*  -允许解析*yaml*文件到Mux数据库（看[yaml_to_mux plugin][18]）
  3. 定制的插件使用简单的*Mux*API（看mux_api）
  
 ##  Mux API
@@ -1764,7 +1766,7 @@ Mux对象被定义在*avocado/core/multiplexer.py*，总是在*avocado.core.pars
 
 ### Yaml_to_mux plugin
 
-为了有一个好的覆盖率，使用者总是需要使用不同的参数或者各种环境去执行相同测试。Avocado使用术语*Multiplexation*或者*Mux*去形成在不同值的相同测试的多元变量。为了 定义这些变量和值，（[YAML][18]）文件被使用。使用YAML文件的好处是不同范围里的可见分离。甚至每个高级设置仍然是可读的，不像传统稀疏，多空间矩阵的参数。
+为了有一个好的覆盖率，使用者总是需要使用不同的参数或者各种环境去执行相同测试。Avocado使用术语*Multiplexation*或者*Mux*去形成在不同值的相同测试的多元变量。为了 定义这些变量和值，（[YAML][19]）文件被使用。使用YAML文件的好处是不同范围里的可见分离。甚至每个高级设置仍然是可读的，不像传统稀疏，多空间矩阵的参数。
 
 让我们用一个事例开始（第一列的行号仅仅是为了文档，他们不是muktiplex文件格式的一部分）：
 
@@ -2644,7 +2646,7 @@ Avocado有两种相互补充的GDB支持：
  - APIs *avocado.utils.gdb* 允许测试和GDB相互交互，包括设置一个可执行文件去运行，设置断点或者其他类型的命令。这需要一个测试方法和API。
 
 Tip
-即使这个章节描述了Avocado GDB功能的使用，允许在Avocado测试中进行线上的二进制调试，它也可能通过使用工具[rr][19]线下调试应用程序。Avocado使用wrapper脚本（使用 *--wrapper* ）的例子传输达到目的。
+即使这个章节描述了Avocado GDB功能的使用，允许在Avocado测试中进行线上的二进制调试，它也可能通过使用工具[rr][20]线下调试应用程序。Avocado使用wrapper脚本（使用 *--wrapper* ）的例子传输达到目的。
 
 ## Transparent Execution of Executables
 
@@ -2732,7 +2734,7 @@ class HelloOutputTest(Test):
 ## GDB support and avocado-virt
 另一个目前的限制是avocado-virt的使用和avocado GDB支持。
 
-透明调试支持的API目前被限制到[avocado.utils.process.run()][20]并且没有覆盖[ avocado.utils.process.SubProcess][21]类的高级使用。avocado-virt扩展，虽然使用了 avocado.utils.process.SubProcess类在后台去执行qemu。
+透明调试支持的API目前被限制到[avocado.utils.process.run()][21]并且没有覆盖[ avocado.utils.process.SubProcess][22]类的高级使用。avocado-virt扩展，虽然使用了 avocado.utils.process.SubProcess类在后台去执行qemu。
 
 这些限制将在avocado和avocado-virt的未来版本中被解决。
 
@@ -2741,7 +2743,7 @@ class HelloOutputTest(Test):
 Avocado的GDB模块，提供了三个主要的类来让一个测试作者和gdb进程，gdbserver进程交互，并且使用GDB远端协议和一个远程目标交互。
 
 
-请参考[avocado.utils.gdb][22]来获取更多信息。
+请参考[avocado.utils.gdb][23]来获取更多信息。
 
 ### Example
 看一看*examples/tests/modify_variable.py*测试：
@@ -2765,7 +2767,7 @@ def test(self):
     self.assertIn("MY VARIABLE 'A' IS: ff", out)
 ```
 
-你能看见我们调用[avocado.utils.gdb.GDB][23]替换了运行执行使用的*process.run*。这让我能够与GDB进行自动化的交互，设置断点，执行命令，查询输出。
+你能看见我们调用[avocado.utils.gdb.GDB][24]替换了运行执行使用的*process.run*。这让我能够与GDB进行自动化的交互，设置断点，执行命令，查询输出。
 
 当你检查输出（*--show-job-log*），你可以看到尽管声明变量为0，ff被引入并且被替代打印。
 
@@ -2801,7 +2803,7 @@ $ scripts/avocado run --wrapper ~/bin/my-wrapper.sh:*my-binary tests/test.py
 
  - 不能同时使用GDB调试（–gdb-run-bin）和wrappers（–wrapper）。这两个选项相互排斥。
  - 你只能设置一个（全局）wrapper。如果你需要的功能在两个wrappers中，你不得不把这些组合进一个单独的wrapper脚本中。
- - 仅用[avocado.utils.process][24]APIs（并且其它的API模块利用它，像mod：avocado.utils.build）运行的可执行文件被这个功能影响。
+ - 仅用[avocado.utils.process][25]APIs（并且其它的API模块利用它，像mod：avocado.utils.build）运行的可执行文件被这个功能影响。
 
 # Plugin System
 Avocado有一个插件系统，可以被用来以一种纯净的方式来扩展avocado。
@@ -2853,7 +2855,7 @@ class HelloWorld(CLICmd):
 
 ### Registering Plugins
 
-Avocado利用[Stevedore][25]库区加载激活插件。Stevedore自身使用[setuptools][26]和它的[entry points ][27]去注册并找到python对象。所以让你的新插件对Avocado可见，你需要基于文件setup.py添加你的setuptools，像这样：
+Avocado利用[Stevedore][26]库区加载激活插件。Stevedore自身使用[setuptools][27]和它的[entry points ][28]去注册并找到python对象。所以让你的新插件对Avocado可见，你需要基于文件setup.py添加你的setuptools，像这样：
 
 ``` stylus
 setup(name='mypluginpack',
@@ -2895,11 +2897,11 @@ Avocado禁用插件的确切影响取决于插件的类型。例如，禁用的�
 
 ### Wrap Up
 
-我们已经简要的讨论了Avocado插件的制作。我们推荐阅读[ Stevedore documentation][28]并且看一看各种插件接口定义的*avocado.plugins.base*模块。
+我们已经简要的讨论了Avocado插件的制作。我们推荐阅读[ Stevedore documentation][29]并且看一看各种插件接口定义的*avocado.plugins.base*模块。
 
-一些插件例子在[ Avocado source tree][29]中是可用的，在*examples/plugins*目录下。
+一些插件例子在[ Avocado source tree][30]中是可用的，在*examples/plugins*目录下。
 
-最终，探索真正的插件附带[avocado.plugins][30]中的Avocado，是最终的“documentation”源。
+最终，探索真正的插件附带[avocado.plugins][31]中的Avocado，是最终的“documentation”源。
 
 # Reference Guide
 本指南提供Avocado基本设计后它的内部构建的信息。
@@ -3023,7 +3025,7 @@ Test  APIs 是一个Avocado主要版本稳定性的保证。那意味着，因�
 ## Test Resolution
 当你使用测试运行器，你将频繁的给文件提供路径，检查，根据内容才去行动。下图显示了Avocado分析一个文件并且决定怎么处理：
 
-![tupian][31]
+![tupian][32]
 
 重要的是要注意检查机制是安全的（也就是在发现和检查阶段，python类和文件没有真正加载和执行）。由于实际上Avocado没有真正的加载代码和类，自省是简单的并且不会去调试测试模块，在代码中你想要列出和运行丢失的加载和各种调试。我们推荐仅仅运行你信任的源码的测试，在你的测试开发进程中静态检测和复查的使用。
 
@@ -3223,7 +3225,7 @@ class MyCustomTest(Test):
 ```
 在*my_cleanup*函数中结果被用位置参数*cleanup_file*调用。
 
-因为*once*被设置为*True*，只有一个独一无二的函数，位置参数和关键字参数的组合被注册，不管多少次他们在试图注册。获得更多的信息可查看[avocado.utils.data_structures.CallbackRegister.register()][32]。
+因为*once*被设置为*True*，只有一个独一无二的函数，位置参数和关键字参数的组合被注册，不管多少次他们在试图注册。获得更多的信息可查看[avocado.utils.data_structures.CallbackRegister.register()][33]。
 
 # Contribution and Community Guide
 有用的指引如何参加Avocado社区和贡献。
@@ -3256,7 +3258,7 @@ $ make link
  - Avocado  IRC 频道：irc://irc.oftc.net/#avocado
 
 ##  Contributing to Avocado
-Avocado使用github和github pull请求开发模块。你可以在这儿[here][33]找到一个如何使用github pull requests的引导。你发送的每个推送请求将被[Travis CI][34]测试并且复审你的推送请求。
+Avocado使用github和github pull请求开发模块。你可以在这儿[here][34]找到一个如何使用github pull requests的引导。你发送的每个推送请求将被[Travis CI][35]测试并且复审你的推送请求。
 
 对于不喜欢用github开发模块的人来说，你可以选择发送补丁到Mailing List，遵循一个在开源开发社区更传统的工作流程。补丁会被Mailing List复审，你应该会选择这种方式。然后维护者将收集补丁，把他们集成在一个分支上，然后这些分支会被做为一个github推送请求递交。这个过程尽力的确保每个贡献的补丁在被认为是一个好的之前经过CI jobs。
 
@@ -3727,7 +3729,7 @@ Bases: unittest.case.TestCase
  - **job** -这个测试的job部分。
 
  
-**Raises** ： [avocado.core.test.NameNotTestNameError][35]
+**Raises** ： [avocado.core.test.NameNotTestNameError][36]
 
  
  **basedir**
@@ -3820,22 +3822,22 @@ Note：允许简单的使用，参数"异常"不能被调用。
  这是utility APIs的合集，Avocado给测试作者提供添加的值。
  
 ##  Subpackages
-### [avocado.utils.external package][36]
+### [avocado.utils.external package][37]
 
- - [avocado.utils.external package][37]
- - [avocado.utils.external.gdbmi_parser module][38]
- - [avocado.utils.external.spark module][39]
- - [Module contents][40]
+ - [avocado.utils.external package][38]
+ - [avocado.utils.external.gdbmi_parser module][39]
+ - [avocado.utils.external.spark module][40]
+ - [Module contents][41]
 
 ##  Submodules
 ## avocado.utils.archive module
 模块是帮助提取和创建压缩archives。
  *exception* **avocado.utils.archive.ArchiveException**
-Bases:[exceptions.Exception][41]
+Bases:[exceptions.Exception][42]
 所有Archive错误的基本异常。
  
  *class* **avocado.utils.archive.ArchiveFile***(filename, mode='r')*
- Bases:[object][42]
+ Bases:[object][43]
  类代表了一个Archive文件。
  Archive是ZIP文件或者Tarballs。
  创建一个Archive实例。
@@ -3862,7 +3864,7 @@ Bases:[exceptions.Exception][41]
  列出标准输出的文件。
  
  **classmethod open(filename, mode='r')**
- 创建一个[ArchiveFile][43]实例。
+ 创建一个[ArchiveFile][44]实例。
  **parameters**：
  
  - **filename**  - 存档文件名称
@@ -3911,7 +3913,7 @@ Bases:[exceptions.Exception][41]
 ## avocado.utils.asset module
 Asset从多个位置提取
 *class* **avocado.utils.asset.Asset***(name, asset_hash, algorithm, locations, cache_dirs, expire=None)*
-Bases：[object][44]
+Bases：[object][45]
 
 尽力地从多重位置中去获取或确认一个asset文件。
 
@@ -4182,38 +4184,38 @@ Returns：对比中不同部分的矩阵，改进的数量，回归的数量，�
 内部的APIs，对Avocado袭击有意义。
 
 ## Subpackages
-### [avocado.core.remote package][45]
+### [avocado.core.remote package][46]
 
- - [Submodules][46]
- - [avocado.core.remote.result module][47]
- - [avocado.core.remote.runner module][48]
- - [avocado.core.remote.test module][49]
- - [Module contents][50]
+ - [Submodules][47]
+ - [avocado.core.remote.result module][48]
+ - [avocado.core.remote.runner module][49]
+ - [avocado.core.remote.test module][50]
+ - [Module contents][51]
  
 
-### [avocado.core.restclient package][51]
+### [avocado.core.restclient package][52]
 
- - [Subpackages][52]
-   - [avocado.core.restclient.cli package][53]
-     - [Subpackages][54]
-       - [avocado.core.restclient.cli.actions package][55]
-         - [Submodules][56]
-         - [avocado.core.restclient.cli.actions.base module][57]
-         - [avocado.core.restclient.cli.actions.server module][58]
-         - [Module contents][59]
-       - [avocado.core.restclient.cli.args package][60]
-         - [Submodules][61]
-         - [avocado.core.restclient.cli.args.base module][62]
-         - [avocado.core.restclient.cli.args.server module][63]
-         - [Module contents][64]
-     - [Submodules][65]
-     - [avocado.core.restclient.cli.app module][66]
-     - [avocado.core.restclient.cli.parser module][67]
-     - [Module contents][68]
- - [Submodules][69]
- - [avocado.core.restclient.connection module][70]
- - [avocado.core.restclient.response module][71]
- - [Module contents][72]
+ - [Subpackages][53]
+   - [avocado.core.restclient.cli package][54]
+     - [Subpackages][55]
+       - [avocado.core.restclient.cli.actions package][56]
+         - [Submodules][57]
+         - [avocado.core.restclient.cli.actions.base module][58]
+         - [avocado.core.restclient.cli.actions.server module][59]
+         - [Module contents][60]
+       - [avocado.core.restclient.cli.args package][61]
+         - [Submodules][62]
+         - [avocado.core.restclient.cli.args.base module][63]
+         - [avocado.core.restclient.cli.args.server module][64]
+         - [Module contents][65]
+     - [Submodules][66]
+     - [avocado.core.restclient.cli.app module][67]
+     - [avocado.core.restclient.cli.parser module][68]
+     - [Module contents][69]
+ - [Submodules][70]
+ - [avocado.core.restclient.connection module][71]
+ - [avocado.core.restclient.response module][72]
+ - [Module contents][73]
 
 
 ## Submodules
@@ -4353,25 +4355,25 @@ Bases: avocado.core.plugin_interfaces.CLICmd
  以下页是Avocado中新发布的总结：
  
 
- - [42.0 Stranger Things][73]
- - [41.0 Outlander][74]
- - [40.0 Dr Who][75]
- - [39.0 The Hateful Eight][76]
- - [38.0 Love, Ken][77]
- - [37.0 Trabant vs. South America][78]
- - [36.0 LTS][79]
- - [35.0 Mr. Robot][80]
- - [0.34.0 The Hour of the Star][81]
- - [0.33.0 Lemonade Joe or Horse Opera][82]
- - [0.32.0 Road Runner][83]
- - [0.31.0 Lucky Luke][84]
- - [0.30.0 Jimmy’s Hall][85]
- - [0.29.0 Steven Universe][86]
- - [0.28.0 Jára Cimrman, The Investigation of the Missing Class Register][87]
- - [0.27.1][88]
- - [0.27.0 Terminator: Genisys][89]
- - [0.26.0 The Office][90]
- - [0.25.0 Blade][91]
+ - [42.0 Stranger Things][74]
+ - [41.0 Outlander][75]
+ - [40.0 Dr Who][76]
+ - [39.0 The Hateful Eight][77]
+ - [38.0 Love, Ken][78]
+ - [37.0 Trabant vs. South America][79]
+ - [36.0 LTS][80]
+ - [35.0 Mr. Robot][81]
+ - [0.34.0 The Hour of the Star][82]
+ - [0.33.0 Lemonade Joe or Horse Opera][83]
+ - [0.32.0 Road Runner][84]
+ - [0.31.0 Lucky Luke][85]
+ - [0.30.0 Jimmy’s Hall][86]
+ - [0.29.0 Steven Universe][87]
+ - [0.28.0 Jára Cimrman, The Investigation of the Missing Class Register][88]
+ - [0.27.1][89]
+ - [0.27.0 Terminator: Genisys][90]
+ - [0.26.0 The Office][91]
+ - [0.25.0 Blade][92]
 
  
  
@@ -4388,90 +4390,91 @@ Bases: avocado.core.plugin_interfaces.CLICmd
   [2]: https://www.redhat.com/archives/avocado-devel/2016-April/msg00038.html
   [3]: https://build.opensuse.org/package/show/Virtualization:Tests/avocado
   [4]: http://avocado-framework.readthedocs.io/en/latest/ContributionGuide.html#hacking-and-using
-  [5]: http://avocado-framework.readthedocs.io/en/latest/ReferenceGuide.html#test-types
-  [6]: https://www.python.org/dev/peps/pep-0008/#function-names
-  [7]: https://www.python.org/dev/peps/pep-0008/
-  [8]: http://avocado-framework.readthedocs.io/en/latest/Mux.html
+  [5]: bhh
+  [6]: http://avocado-framework.readthedocs.io/en/latest/ReferenceGuide.html#test-types
+  [7]: https://www.python.org/dev/peps/pep-0008/#function-names
+  [8]: https://www.python.org/dev/peps/pep-0008/
   [9]: http://avocado-framework.readthedocs.io/en/latest/Mux.html
   [10]: http://avocado-framework.readthedocs.io/en/latest/Mux.html
   [11]: http://avocado-framework.readthedocs.io/en/latest/Mux.html
-  [12]: http://avocado-framework.readthedocs.io/en/latest/index.html#api-reference
-  [13]: http://www.json.org/
-  [14]: http://avocado-framework.readthedocs.io/en/latest/Plugins.html
-  [15]: https://en.wikipedia.org/wiki/INI_file
-  [16]: http://avocado-framework.readthedocs.io/en/latest/Mux.html#yaml-to-mux-plugin
+  [12]: http://avocado-framework.readthedocs.io/en/latest/Mux.html
+  [13]: http://avocado-framework.readthedocs.io/en/latest/index.html#api-reference
+  [14]: http://www.json.org/
+  [15]: http://avocado-framework.readthedocs.io/en/latest/Plugins.html
+  [16]: https://en.wikipedia.org/wiki/INI_file
   [17]: http://avocado-framework.readthedocs.io/en/latest/Mux.html#yaml-to-mux-plugin
-  [18]: http://www.yaml.org/
-  [19]: http://rr-project.org/
-  [20]: http://avocado-framework.readthedocs.io/en/latest/api/utils/avocado.utils.html#avocado.utils.process.run
-  [21]: http://avocado-framework.readthedocs.io/en/latest/api/utils/avocado.utils.html#avocado.utils.process.SubProcess
-  [22]: http://avocado-framework.readthedocs.io/en/latest/api/utils/avocado.utils.html#module-avocado.utils.gdb
-  [23]: http://avocado-framework.readthedocs.io/en/latest/api/utils/avocado.utils.html#avocado.utils.gdb.GDB
-  [24]: http://avocado-framework.readthedocs.io/en/latest/api/utils/avocado.utils.html#module-avocado.utils.process
-  [25]: https://github.com/openstack/stevedore
-  [26]: https://pythonhosted.org/setuptools/
-  [27]: https://pythonhosted.org/setuptools/pkg_resources.html#entry-points
-  [28]: http://docs.openstack.org/developer/stevedore/index.html
-  [29]: https://github.com/avocado-framework/avocado/tree/master/examples/plugins
-  [30]: http://avocado-framework.readthedocs.io/en/latest/api/plugins/avocado.plugins.html#module-avocado.plugins
-  [31]: ./images/diagram.png "diagram.png"
-  [32]: http://avocado-framework.readthedocs.io/en/latest/api/utils/avocado.utils.html#avocado.utils.data_structures.CallbackRegister.register
-  [33]: https://help.github.com/articles/about-pull-requests/
-  [34]: https://travis-ci.org/avocado-framework/avocado
-  [35]: http://avocado-framework.readthedocs.io/en/latest/api/core/avocado.core.html#avocado.core.test.NameNotTestNameError
-  [36]: http://avocado-framework.readthedocs.io/en/latest/api/utils/avocado.utils.external.html
-  [37]: http://avocado-framework.readthedocs.io/en/latest/api/utils/avocado.utils.external.html#submodules
-  [38]: http://avocado-framework.readthedocs.io/en/latest/api/utils/avocado.utils.external.html#module-avocado.utils.external.gdbmi_parser
-  [39]: http://avocado-framework.readthedocs.io/en/latest/api/utils/avocado.utils.external.html#module-avocado.utils.external.spark
-  [40]: http://avocado-framework.readthedocs.io/en/latest/api/utils/avocado.utils.external.html#module-avocado.utils.external
-  [41]: https://docs.python.org/3/library/exceptions.html#exceptions.Exception
-  [42]: https://docs.python.org/3/library/functions.html#object
-  [43]: http://avocado-framework.readthedocs.io/en/latest/api/utils/avocado.utils.html#avocado.utils.archive.ArchiveFile
-  [44]: https://docs.python.org/3/library/functions.html#object
-  [45]: http://avocado-framework.readthedocs.io/en/latest/api/core/avocado.core.remote.html
-  [46]: http://avocado-framework.readthedocs.io/en/latest/api/core/avocado.core.remote.html#submodules
-  [47]: http://avocado-framework.readthedocs.io/en/latest/api/core/avocado.core.remote.html#module-avocado.core.remote.result
-  [48]: http://avocado-framework.readthedocs.io/en/latest/api/core/avocado.core.remote.html#module-avocado.core.remote.runner
-  [49]: http://avocado-framework.readthedocs.io/en/latest/api/core/avocado.core.remote.html#module-avocado.core.remote.test
-  [50]: http://avocado-framework.readthedocs.io/en/latest/api/core/avocado.core.remote.html#module-avocado.core.remote
-  [51]: http://avocado-framework.readthedocs.io/en/latest/api/core/avocado.core.restclient.html
-  [52]: http://avocado-framework.readthedocs.io/en/latest/api/core/avocado.core.restclient.html#subpackages
-  [53]: http://avocado-framework.readthedocs.io/en/latest/api/core/avocado.core.restclient.cli.html
-  [54]: http://avocado-framework.readthedocs.io/en/latest/api/core/avocado.core.restclient.cli.html#subpackages
-  [55]: http://avocado-framework.readthedocs.io/en/latest/api/core/avocado.core.restclient.cli.actions.html
-  [56]: http://avocado-framework.readthedocs.io/en/latest/api/core/avocado.core.restclient.cli.actions.html#submodules
-  [57]: http://avocado-framework.readthedocs.io/en/latest/api/core/avocado.core.restclient.cli.actions.html#module-avocado.core.restclient.cli.actions.base
-  [58]: http://avocado-framework.readthedocs.io/en/latest/api/core/avocado.core.restclient.cli.actions.html#module-avocado.core.restclient.cli.actions.server
-  [59]: http://avocado-framework.readthedocs.io/en/latest/api/core/avocado.core.restclient.cli.actions.html#module-avocado.core.restclient.cli.actions
-  [60]: http://avocado-framework.readthedocs.io/en/latest/api/core/avocado.core.restclient.cli.args.html
-  [61]: http://avocado-framework.readthedocs.io/en/latest/api/core/avocado.core.restclient.cli.args.html#submodules
-  [62]: http://avocado-framework.readthedocs.io/en/latest/api/core/avocado.core.restclient.cli.args.html#module-avocado.core.restclient.cli.args.base
-  [63]: http://avocado-framework.readthedocs.io/en/latest/api/core/avocado.core.restclient.cli.args.html#module-avocado.core.restclient.cli.args.server
-  [64]: http://avocado-framework.readthedocs.io/en/latest/api/core/avocado.core.restclient.cli.args.html#module-avocado.core.restclient.cli.args
-  [65]: http://avocado-framework.readthedocs.io/en/latest/api/core/avocado.core.restclient.cli.html#submodules
-  [66]: http://avocado-framework.readthedocs.io/en/latest/api/core/avocado.core.restclient.cli.html#module-avocado.core.restclient.cli.app
-  [67]: http://avocado-framework.readthedocs.io/en/latest/api/core/avocado.core.restclient.cli.html#module-avocado.core.restclient.cli.parser
-  [68]: http://avocado-framework.readthedocs.io/en/latest/api/core/avocado.core.restclient.cli.html#module-avocado.core.restclient.cli
-  [69]: http://avocado-framework.readthedocs.io/en/latest/api/core/avocado.core.restclient.html#submodules
-  [70]: http://avocado-framework.readthedocs.io/en/latest/api/core/avocado.core.restclient.html#module-avocado.core.restclient.connection
-  [71]: http://avocado-framework.readthedocs.io/en/latest/api/core/avocado.core.restclient.html#module-avocado.core.restclient.response
-  [72]: http://avocado-framework.readthedocs.io/en/latest/api/core/avocado.core.restclient.html#module-avocado.core.restclient
-  [73]: http://avocado-framework.readthedocs.io/en/latest/release_notes/42_0.html
-  [74]: http://avocado-framework.readthedocs.io/en/latest/release_notes/41_0.html
-  [75]: http://avocado-framework.readthedocs.io/en/latest/release_notes/40_0.html
-  [76]: http://avocado-framework.readthedocs.io/en/latest/release_notes/39_0.html
-  [77]: http://avocado-framework.readthedocs.io/en/latest/release_notes/38_0.html
-  [78]: http://avocado-framework.readthedocs.io/en/latest/release_notes/37_0.html
-  [79]: http://avocado-framework.readthedocs.io/en/latest/release_notes/36_0.html
-  [80]: http://avocado-framework.readthedocs.io/en/latest/release_notes/35_0.html
-  [81]: http://avocado-framework.readthedocs.io/en/latest/release_notes/0_34_0.html
-  [82]: http://avocado-framework.readthedocs.io/en/latest/release_notes/0_33_0.html
-  [83]: http://avocado-framework.readthedocs.io/en/latest/release_notes/0_32_0.html
-  [84]: http://avocado-framework.readthedocs.io/en/latest/release_notes/0_31_0.html
-  [85]: http://avocado-framework.readthedocs.io/en/latest/release_notes/0_30_0.html
-  [86]: http://avocado-framework.readthedocs.io/en/latest/release_notes/0_29_0.html
-  [87]: http://avocado-framework.readthedocs.io/en/latest/release_notes/0_28_0.html
-  [88]: http://avocado-framework.readthedocs.io/en/latest/release_notes/0_27_1.html
-  [89]: http://avocado-framework.readthedocs.io/en/latest/release_notes/0_27_0.html
-  [90]: http://avocado-framework.readthedocs.io/en/latest/release_notes/0_26_0.html
-  [91]: http://avocado-framework.readthedocs.io/en/latest/release_notes/0_25_0.html
+  [18]: http://avocado-framework.readthedocs.io/en/latest/Mux.html#yaml-to-mux-plugin
+  [19]: http://www.yaml.org/
+  [20]: http://rr-project.org/
+  [21]: http://avocado-framework.readthedocs.io/en/latest/api/utils/avocado.utils.html#avocado.utils.process.run
+  [22]: http://avocado-framework.readthedocs.io/en/latest/api/utils/avocado.utils.html#avocado.utils.process.SubProcess
+  [23]: http://avocado-framework.readthedocs.io/en/latest/api/utils/avocado.utils.html#module-avocado.utils.gdb
+  [24]: http://avocado-framework.readthedocs.io/en/latest/api/utils/avocado.utils.html#avocado.utils.gdb.GDB
+  [25]: http://avocado-framework.readthedocs.io/en/latest/api/utils/avocado.utils.html#module-avocado.utils.process
+  [26]: https://github.com/openstack/stevedore
+  [27]: https://pythonhosted.org/setuptools/
+  [28]: https://pythonhosted.org/setuptools/pkg_resources.html#entry-points
+  [29]: http://docs.openstack.org/developer/stevedore/index.html
+  [30]: https://github.com/avocado-framework/avocado/tree/master/examples/plugins
+  [31]: http://avocado-framework.readthedocs.io/en/latest/api/plugins/avocado.plugins.html#module-avocado.plugins
+  [32]: ./images/diagram.png "diagram.png"
+  [33]: http://avocado-framework.readthedocs.io/en/latest/api/utils/avocado.utils.html#avocado.utils.data_structures.CallbackRegister.register
+  [34]: https://help.github.com/articles/about-pull-requests/
+  [35]: https://travis-ci.org/avocado-framework/avocado
+  [36]: http://avocado-framework.readthedocs.io/en/latest/api/core/avocado.core.html#avocado.core.test.NameNotTestNameError
+  [37]: http://avocado-framework.readthedocs.io/en/latest/api/utils/avocado.utils.external.html
+  [38]: http://avocado-framework.readthedocs.io/en/latest/api/utils/avocado.utils.external.html#submodules
+  [39]: http://avocado-framework.readthedocs.io/en/latest/api/utils/avocado.utils.external.html#module-avocado.utils.external.gdbmi_parser
+  [40]: http://avocado-framework.readthedocs.io/en/latest/api/utils/avocado.utils.external.html#module-avocado.utils.external.spark
+  [41]: http://avocado-framework.readthedocs.io/en/latest/api/utils/avocado.utils.external.html#module-avocado.utils.external
+  [42]: https://docs.python.org/3/library/exceptions.html#exceptions.Exception
+  [43]: https://docs.python.org/3/library/functions.html#object
+  [44]: http://avocado-framework.readthedocs.io/en/latest/api/utils/avocado.utils.html#avocado.utils.archive.ArchiveFile
+  [45]: https://docs.python.org/3/library/functions.html#object
+  [46]: http://avocado-framework.readthedocs.io/en/latest/api/core/avocado.core.remote.html
+  [47]: http://avocado-framework.readthedocs.io/en/latest/api/core/avocado.core.remote.html#submodules
+  [48]: http://avocado-framework.readthedocs.io/en/latest/api/core/avocado.core.remote.html#module-avocado.core.remote.result
+  [49]: http://avocado-framework.readthedocs.io/en/latest/api/core/avocado.core.remote.html#module-avocado.core.remote.runner
+  [50]: http://avocado-framework.readthedocs.io/en/latest/api/core/avocado.core.remote.html#module-avocado.core.remote.test
+  [51]: http://avocado-framework.readthedocs.io/en/latest/api/core/avocado.core.remote.html#module-avocado.core.remote
+  [52]: http://avocado-framework.readthedocs.io/en/latest/api/core/avocado.core.restclient.html
+  [53]: http://avocado-framework.readthedocs.io/en/latest/api/core/avocado.core.restclient.html#subpackages
+  [54]: http://avocado-framework.readthedocs.io/en/latest/api/core/avocado.core.restclient.cli.html
+  [55]: http://avocado-framework.readthedocs.io/en/latest/api/core/avocado.core.restclient.cli.html#subpackages
+  [56]: http://avocado-framework.readthedocs.io/en/latest/api/core/avocado.core.restclient.cli.actions.html
+  [57]: http://avocado-framework.readthedocs.io/en/latest/api/core/avocado.core.restclient.cli.actions.html#submodules
+  [58]: http://avocado-framework.readthedocs.io/en/latest/api/core/avocado.core.restclient.cli.actions.html#module-avocado.core.restclient.cli.actions.base
+  [59]: http://avocado-framework.readthedocs.io/en/latest/api/core/avocado.core.restclient.cli.actions.html#module-avocado.core.restclient.cli.actions.server
+  [60]: http://avocado-framework.readthedocs.io/en/latest/api/core/avocado.core.restclient.cli.actions.html#module-avocado.core.restclient.cli.actions
+  [61]: http://avocado-framework.readthedocs.io/en/latest/api/core/avocado.core.restclient.cli.args.html
+  [62]: http://avocado-framework.readthedocs.io/en/latest/api/core/avocado.core.restclient.cli.args.html#submodules
+  [63]: http://avocado-framework.readthedocs.io/en/latest/api/core/avocado.core.restclient.cli.args.html#module-avocado.core.restclient.cli.args.base
+  [64]: http://avocado-framework.readthedocs.io/en/latest/api/core/avocado.core.restclient.cli.args.html#module-avocado.core.restclient.cli.args.server
+  [65]: http://avocado-framework.readthedocs.io/en/latest/api/core/avocado.core.restclient.cli.args.html#module-avocado.core.restclient.cli.args
+  [66]: http://avocado-framework.readthedocs.io/en/latest/api/core/avocado.core.restclient.cli.html#submodules
+  [67]: http://avocado-framework.readthedocs.io/en/latest/api/core/avocado.core.restclient.cli.html#module-avocado.core.restclient.cli.app
+  [68]: http://avocado-framework.readthedocs.io/en/latest/api/core/avocado.core.restclient.cli.html#module-avocado.core.restclient.cli.parser
+  [69]: http://avocado-framework.readthedocs.io/en/latest/api/core/avocado.core.restclient.cli.html#module-avocado.core.restclient.cli
+  [70]: http://avocado-framework.readthedocs.io/en/latest/api/core/avocado.core.restclient.html#submodules
+  [71]: http://avocado-framework.readthedocs.io/en/latest/api/core/avocado.core.restclient.html#module-avocado.core.restclient.connection
+  [72]: http://avocado-framework.readthedocs.io/en/latest/api/core/avocado.core.restclient.html#module-avocado.core.restclient.response
+  [73]: http://avocado-framework.readthedocs.io/en/latest/api/core/avocado.core.restclient.html#module-avocado.core.restclient
+  [74]: http://avocado-framework.readthedocs.io/en/latest/release_notes/42_0.html
+  [75]: http://avocado-framework.readthedocs.io/en/latest/release_notes/41_0.html
+  [76]: http://avocado-framework.readthedocs.io/en/latest/release_notes/40_0.html
+  [77]: http://avocado-framework.readthedocs.io/en/latest/release_notes/39_0.html
+  [78]: http://avocado-framework.readthedocs.io/en/latest/release_notes/38_0.html
+  [79]: http://avocado-framework.readthedocs.io/en/latest/release_notes/37_0.html
+  [80]: http://avocado-framework.readthedocs.io/en/latest/release_notes/36_0.html
+  [81]: http://avocado-framework.readthedocs.io/en/latest/release_notes/35_0.html
+  [82]: http://avocado-framework.readthedocs.io/en/latest/release_notes/0_34_0.html
+  [83]: http://avocado-framework.readthedocs.io/en/latest/release_notes/0_33_0.html
+  [84]: http://avocado-framework.readthedocs.io/en/latest/release_notes/0_32_0.html
+  [85]: http://avocado-framework.readthedocs.io/en/latest/release_notes/0_31_0.html
+  [86]: http://avocado-framework.readthedocs.io/en/latest/release_notes/0_30_0.html
+  [87]: http://avocado-framework.readthedocs.io/en/latest/release_notes/0_29_0.html
+  [88]: http://avocado-framework.readthedocs.io/en/latest/release_notes/0_28_0.html
+  [89]: http://avocado-framework.readthedocs.io/en/latest/release_notes/0_27_1.html
+  [90]: http://avocado-framework.readthedocs.io/en/latest/release_notes/0_27_0.html
+  [91]: http://avocado-framework.readthedocs.io/en/latest/release_notes/0_26_0.html
+  [92]: http://avocado-framework.readthedocs.io/en/latest/release_notes/0_25_0.html
