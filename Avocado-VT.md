@@ -2022,11 +2022,11 @@ Unpaired T-test被用于比较两个例子，用户可以检查p-value去知道�
 
  - [netperf.exhost_guest.html][28]
  - [fio.html][29]
- - Every Avg line represents the average value based on $n repetitions of the same test, and the following SD line represents the Standard Deviation between the $n repetitions.
+ - 每个Avg line表示基于相同测试的 $n 重复的平均值，并且以下SD line 表示 $n 重复之间的标准偏差。
  - 标准的偏差用平均的百分比来展示。
  - 两个平均值的不同之处的意义is calculated using unpaired T-test that takes into account the SD of the averages.
- - The paired t-test is computed for the averages of same category.
- - only over 95% confidence results will be added “+/-” in “Significance” part. “+” for cpu-usage means regression, “+” for throughput means improvement.
+ - 对同一类别的平均值计算配对t-test。
+ - 只有超过95％的置信度结果将在“显着性”部分中添加“+/-”。 “+”表示cpu-usage意味着regression，“+”表示吞吐量意味着改善。
 
 Highlight HTML result
 
@@ -2037,12 +2037,12 @@ Highlight HTML result
  - test time
  - version (only when diff)
  - other: repeat time, title
- - user light green/red to highlight small (< %5) DIFF
- - highlight Significance with same color in one raw
- - add doc link to result file, and describe color in doc
+ - 用户浅绿色/红色高亮显示小（<％5）DIFF
+ - 在一个原始的高亮显示相同的颜色
+ - 添加doc链接到结果文件，并在doc中描述颜色
 
 
-[netperf.avg.html][30]  -  Raw data that the averages are based on.
+[netperf.avg.html][30]  -  平均值所基于的原始数据。
 
 
 # Setup a virtual environment for multi host tests
@@ -2066,11 +2066,11 @@ Highlight HTML result
 
  2. Hardware accelerated:
 
-Hardware for the accelerated nested virtualization AMD Phenom and never core extension (smv, NPT) Intel Nehalem and never core extension (vmx, EPT)
+加速嵌套虚拟化的硬件AMD Phenom和永不扩展核心（smv，NPT）Intel Nehalem和永不扩展核心（vmx，EPT）
 
 软件支持加速嵌入式虚拟机kvm，xen，vmware，.....几乎和本地客户机(1.0-0.1 of native quest performance)同样的速度。
 
-性能依赖于加载的类型。加载IO可能很慢。 Without vt-d or AMD-Vi and network device pass through.
+性能依赖于加载的类型。加载IO可能很慢。 没有vt-d或AMD-Vi和网络设备通过。
 
 ## Configuration for multi-host virt tests:
 
@@ -2407,7 +2407,7 @@ def migrate_vms_src(self, mig_data):
     vm.migrate(mig_data.dst, mig_data.vm_ports)
 ```
 
-这个例子在migration中只migrates了第一个定义的机器。更好的例子在virt_utils.MultihostMigration.migrate_vms_src。这个函数migrates all machines defined for migration.
+这个例子在migration中只migrates了第一个定义的机器。更好的例子在virt_utils.MultihostMigration.migrate_vms_src。此函数迁移为迁移定义的所有计算机。
 
 
 # Links with downloadable images for virt tests
@@ -2451,7 +2451,7 @@ https://assets-avocadoproject.rhcloud.com/static/jeos-23-64.qcow2.7z
 https://assets-avocadoproject.rhcloud.com/static/SHA1SUM_JEOS23
 
 
-Unfortunately the host assets-avocadoproject.rhcloud.com is configured in such a way that exploring that base directory won’t give you a file listing, and you have to provide the exact urls of what you’re looking for.
+不幸的是，主机assets-avocadoproject.rhcloud.com是这样配置的，探索这个基本目录不会给你一个文件列表，你必须提供你正在寻找的确切网址。
 
 
 ### How to update JeOS
@@ -2667,7 +2667,7 @@ $ cp /usr/local/autotest/contrib/virt/site-config.cfg /usr/local/autotest/client
 意识到你需要很好的阅读这个文件，并且后面，根据你的测试需求配置它。我们特别的强调你可以创建一个你想要测试的git软件库的私有git mirrors，so you tax the upstream mirrors less，并且增加了可靠性。
 
 
-现在，它能在Fedora 18，upstream kvm上运行 regression testing ， 如果你有一个cobbler功能的实例，带有一个名为f18-autotest-kvm的配置文件能被恰当的安装在你的机器上。Having that properly set up may open another can of worms.
+现在，它能在Fedora 18，upstream kvm上运行 regression testing ， 如果你有一个cobbler功能的实例，带有一个名为f18-autotest-kvm的配置文件能被恰当的安装在你的机器上。正确设置可能会打开另一罐虫。
 
 我们在我们的服务器上安排jobs的一种简单的方式是使用cron去安排你想测试东西的每天测试jobs。这儿有一个例子在'out of box'工作。如果你有一个你以收到邮件通知为目的创建的因特网邮件列表，叫做autotest-virt-jobs@foocorp.com ，你可以把它放在服务器中用户自动测试的crontab上：
 
@@ -2719,7 +2719,7 @@ https://github.com/cobbler/cobbler/wiki/Start%20Here
 所以，对于假设的例子，你将不得不在cobbler中用名字foo-amd.bazcorp.com foo-intel.bazcorp.com设置系统。那完全正确，系统的‘名字’必须是‘主机名’。否则autotest将询问cobbler并且cobbler不知道autotest谈论的是哪台机器。
 
 
-我们的其他的设想在这儿：
+我们的其他的设想在这：
 
 1）我们有一个（只读的，避免人们错误的删除了系统）NFS共享，里面有Fedora 18 DVD和其他ISOS。基本目录的数据结构可能看上去像这样：
 
