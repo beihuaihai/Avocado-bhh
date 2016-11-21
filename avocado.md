@@ -713,11 +713,11 @@ class SyncTest(Test):
 if __name__ == "__main__":
     main()
 ```
-这边我们有一个例子*setup*函数在起作用：这边我们通过* avocado.Test.datadir()*函数获得测试套件代码（tarball）的位置，然后通过*avocado.utils.archive.extract()*函数去解压打包的文件，API解压测试套件tarball，按照*avocado.utils.build.make()*函数，建立一个套件。
+这边我们有一个例子*setup*函数在起作用：这边我们通过 *avocado.Test.datadir()* 函数获得测试套件代码（tarball）的位置，然后通过 *avocado.utils.archive.extract()* 函数去解压打包的文件，API解压测试套件tarball，按照 *avocado.utils.build.make()* 函数，建立一个套件。
 
-*setup*函数是Avocado中你被允许调用*skip*方法的唯一地方，已知，如果一个测试开始被执行，按照定义它不能忽略任何东西。Avocado将尽力去强调这个范围，所以如果你在*setup*之外使用*skip*，执行的测试将被标记为错误的状态，并且错误信息将指示你修改你的测试代码。
+*setup* 函数是Avocado中你被允许调用 *skip* 方法的唯一地方，已知，如果一个测试开始被执行，按照定义它不能忽略任何东西。Avocado将尽力去强调这个范围，所以如果你在 *setup* 之外使用 *skip*，执行的测试将被标记为错误的状态，并且错误信息将指示你修改你的测试代码。
 
-在这个例子中，*test*函数将使用合理的参数，使用接口函数*avocado.utils.process.system()*去获取到编译套件和执行*./synctest*命令的基本目录。
+在这个例子中，*test*函数将使用合理的参数，使用接口函数 *avocado.utils.process.system()* 去获取到编译套件和执行 *./synctest* 命令的基本目录。
 
 ## Fetching asset files
 
