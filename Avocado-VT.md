@@ -2712,14 +2712,14 @@ https://github.com/cobbler/cobbler/wiki/Start%20Here
 
 你也将不得不添加你的测试机到你的cobbler服务器，并且将设置远程控制他们（开关电源）。
 
-下面的内容是重要的：
+下面的内容是重要的  ：
 
 在autotest服务中你的机器的主机名必须是在cobbler中你的系统的名字。
 
 所以，对于假设的例子，你将不得不在cobbler中用名字foo-amd.bazcorp.com foo-intel.bazcorp.com设置系统。那完全正确，系统的‘名字’必须是‘主机名’。否则autotest将询问cobbler并且cobbler不知道autotest谈论的是哪台机器。
 
 
-我们的其他的设想在这：
+我们的其他的设想在这边：
 
 1）我们有一个（只读的，避免人们错误的删除了系统）NFS共享，里面有Fedora 18 DVD和其他ISOS。基本目录的数据结构可能看上去像这样：
 
