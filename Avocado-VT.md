@@ -1,20 +1,20 @@
 # About Avocado-VT
 Avocado-VT是一个兼容的插件，可以让你执行虚拟化相关测试（正如所知的virt-test），Avocado为其提供了所有的便捷。
 
-它的主要用途是给virt开发者提供一个自动化的回归分析测试服务，去做virt技术（在服务器测试基础设施上使用它）的定期的自动化测试
+它的主要目的是作为virt开发人员的自动化回归测试工具，并且定期对virt技术进行自动测试（前提是将其与服务器测试基础结构一起使用）。
 
-Avocado-VT目的是根据大多virt功能和性能测试需要来做一个集中的项目，我们总结如下：
+Avocado-VT旨在成为大多数virt功能和性能测试需求的集中项目，我们总结如下：
 
  - 客户系统安装，window（winXP-win7），Linux（RHEL，Fedora，OpenSUSE，其他的通过步骤引擎机器的系统）
- - Linux客户的串行输出
- - Migration, networking, timedrift ，其它类型的测试
+ - Linux客户端的串行输出
+ -迁移，网络，timedrift和其他类型的测试
 
 对于 qemu subtests，我们可以这样做：
 
- - 监视器控制human和QMP协议
- - 建立和使用qemu使用各种函数方法 (source tarball, git repo, rpm)
- - 进行一定程度的性能测试
- - KVM单元测试可以轻松从virt-test内部运行,我们有完整的集成的unittest执行
+ - 监视人机和QMP协议的控制
+ - 使用各种方法构建和使用qemu (source tarball, git repo, rpm)
+ - 可以进行一定程度的性能测试
+ - KVM单元测试可以从virt-test内部舒适地运行，我们确实与单元测试执行有完全集成
 
 我们支持带有硬件虚拟化支持（AMD 和 Intel）的x84_64的主机，支持Intel 32和64位的客户机操作系统。
 
@@ -33,7 +33,7 @@ Virt-test变成了Avocado-VT项目。以前在Autotest项目下面，在：http:
 安装了Avocado之后，你应该已经使能了正确的软件库。
 
 Note：
-如果你是通过源码使用avocado，像[here][2]描述的那样做一个链接。
+如果你是通过源码使用avocado，请使用[here][2] 所述的make link
 
 ### Fedora and Enterprise Linux
 在Fedora或者Enterprise Linux安装Avocado-VT最重要的就是安装avocado-plugins-vt数据包，安装命令：
@@ -134,7 +134,7 @@ TIME       : 95.76 s
  
 
 # Writing Tests
-这边文档主要是去帮助你写你自己的虚拟化测试文件。它有条理地简略的解释了源码的数据结构，然后写简单的测试文件，然后做做更复杂的测试，例如定义定制的客户机。
+本文档旨在帮助您编写自己的virt测试。它组织起来简要解释源结构，然后编写简单的测试，然后做更复杂的东西，例如定义定制的客户机。
 
 内容：
 
@@ -153,9 +153,10 @@ TIME       : 95.76 s
 ## Test Providers
 Test providers是Avocado-VT内置的一个可加载的模块的集合机制，能推送出一个目录，包含测试文件，配置文件和相关的依赖文件，以及其他的那些目录。 test providers背后的设计目标是：
  - 使其他组织机构可以在其他任意git软件库上维护测试库。
- - 稳定API并且强制分离核心Avocado-VT功能和测试文件。
+ - 稳定API并实施核心Avocado-VT功能和测试的分离。
 
 test provider规范分为Provider Layout和Definition files。
+
 ### Test Provider Layout
 
 ``` stylus
@@ -173,7 +174,7 @@ test provider规范分为Provider Layout和Definition files。
     `-- tests
         `-- cfg
 ```
-实际上，Avocado-VT能够智能地支持识别任意组织机构的python和‘test’目录里的配置文件。你不需要命名在backend names之后的顶层子目录，即使它确实可以使事情更简单。术语‘backend’常被Avocado-VT用来指支持虚拟化技术。在撰写这个文本时，backends被Avocado-VT认为是：
+事实上，Avocado-VT库足够聪明，足以支持在'tests'目录中任意组织的python和配置文件。你不需要在后端名称之后命名顶级子目录，虽然这当然使事情变得更容易。术语‘backend’常被Avocado-VT用来指支持虚拟化技术。在撰写这个文本时，backends被Avocado-VT认为是：
 
  - generic（运行在multiple backends中的测试）
  - qemu
@@ -187,7 +188,7 @@ test provider规范分为Provider Layout和Definition files。
 
 
 ### Types of Test Providers
-每个test provider要么是一个本地的文件系统目录，要么是一个git软件库的子目录。当然，git软件库子目录可能是软件库的根目录，但是一点建议是人们能使用在其他项目中git软件库里的Avocado-VT providers。qemu希望维持它自己的provider，他们可以通过支持文件来做这，也就是说在qemu.git里在tests/avocado_vt子目录里。
+每个test provider要么是一个本地的文件系统目录，要么是一个git软件库的子目录。当然，git软件库子目录可能是软件库的根目录，但是一点建议是人们能使用在其他项目中git软件库里的Avocado-VT providers。qemu希望维持它自己的provider，他们可以通过支持文件来做这，例如，在qemu.git内的tests/avocado_vt子目录中。
 
 
 ### Test Provider definition file
@@ -310,7 +311,7 @@ subdir: v2v/
  3. 尝试你的新测试，发送它到mailing list
 
 ### Write our own ‘uptime’ test - Step by Step procedure
-现在，让我们去写我们的uptime test，它唯一的目的就是 pick up a living guest，通过ssh连接它，并返回它的uptime。
+现在，让我们去写我们的运行时间测试，它生命周期中唯一的目的就是找到一个运行着的客户机，通过ssh连接它，并返回它的运行时间。
 1.首先我们需要定位我们的provider目录。它在Avocado data 目录（avocado config –datadir）中，通常在~/avocado/data/avocado-vt 。我们要去写一个一般的tp-qemu test，所以让我们移动到正确的git位置：
 
 ``` stylus
@@ -318,7 +319,7 @@ $ cd $AVOCADO_DATA/avocado-vt/test-providers.d/downloads/io-github-autotest-qemu
 ```
 
 
-2.我们的uptime test不需要任何qemu特定功能。思考它，我们仅仅需要一个vm object并且establish an ssh session to it，所以我们能启动命令。所以我们能存储我们的分支新的测试在 *generic/tests* 目录下：
+2.我们的运行时间测试不需要任何qemu特定功能。思考它，我们只需要一个vm对象并建立一个ssh会话，所以我们可以运行该命令。所以我们可以在 *generic/tests* 目录下存储我们的全新测试 ：
 
 ``` stylus
 $ touch generic/tests/uptime.py
@@ -326,7 +327,7 @@ $ git add generic/tests/uptime.py
 ```
 
 
-3.OK，那是个开始。这样的话，我们不得不实现至少一个功能 *run* 。让我们从它开始，仅仅放一个关键字pass，没有操作。我们的测试像这样：
+3.OK，那是个开始。这样的话，我们至少得实现一个功能 *run* 。让我们从它开始，仅仅放一个关键字pass，没有操作。我们的测试像这样：
 
 ``` stylus
 def run(test, params, env):
@@ -336,7 +337,7 @@ def run(test, params, env):
     pass
 ```
 
- 1. 现在，我们需要什么样的API从我们的测试环境中攫取一个VM？我们的env 对象有一个函数， *get_vm* ，它将获取存储在我们的环境变量中一个已给的vm 名字。他们中的一些有别名。main_vm包含了环境中现在的主要的vm名字，在很多时候，它是vm1 。env.get_vm返回一个vm对象，我们将存储在变量vm上。它将像这样：
+ 1. 现在，我们需要什么样的API从我们的测试环境中攫取一个VM？我们的env 对象有一个函数， *get_vm* ，它将获取存储在我们的环境变量中一个已给的vm 名字。他们中的一些有别名。*main_vm* 包含了环境中现在的主要的vm名字，在很多时候，它是 *vm1* 。*env.get_vm* 返回一个vm对象，我们将存储在变量vm上。它将像这样：
 
 ``` stylus
 def run(test, params, env):
@@ -346,7 +347,7 @@ def run(test, params, env):
     vm = env.get_vm(params["main_vm"])
 ```
 
- 1. 一个vm对象有许多有趣的函数，我们打算更彻底的记录它们，但就目前而言，我们想要确保这个VM是alive和functional，至少在一个qemu进程的立场上。所以我们调用函数 *verify_alive()* ,它将确认qemu进程是否是functional并且如果monitors，如果any exist，是否是functional。如果由于任何问题这些条件中任何一个不支持，一个异常将会抛出并且测试将会失败。这个需求因为一些bug，vm进程可能死在水中，或者monitors没有响应：
+ 1. 一个vm对象有很多有趣的方法，我们计划更全面地记录它们，但就目前而言，我们想要确保这个VM是alive和functional，至少从一个qemu进程的角度上来看。所以我们调用函数 *verify_alive()* ,这将验证qemu进程是否正常，以及监视器（如果存在）是否有效。如果任何这些条件由于任何问题不满足，将抛出异常，测试将失败。这个要求是因为有时由于一个错误vm进程可能死在水面上，或监视器没有响应：
 
 ``` stylus
 def run(test, params, env):
@@ -357,7 +358,7 @@ def run(test, params, env):
     vm.verify_alive()
 ```
 
- 1. 下一步，我们想要登录到vm。调用vm函数 *wait_for_login()* 返回一个远端会话对象，并且做为参数中一个，它允许你校正timeout，那是我们想要去看我们攫取一个ssh提示的等待时间。我们有顶级变量 *login_timeout* ，这是检索它并且传递它的值给 *wait_for_login()* 的一个很好的练习，所以如果因为一些原因我们运行在一个很慢的主机，某个变量的提高将影响所有的测试。注意因为这个函数有一个默认的timeout值，所以覆盖这个值或者不传递任何值给 *wait_for_login()* 是完全ok的。回到业务，从我们的参数字典中选择登陆超时时间：
+ 1. 下一步，我们想要登录到vm。返回远程会话对象的vm方法称为 *wait_for_login()* ，并且作为参数之一，它允许您调整超时，即我们想要等待以查看是否可以抓取ssh提示的时间。我们有顶级变量 *login_timeout* ，它是一个好的做法，检索它，并将其值传递给 *wait_for_login()* ，所以如果由于某种原因，我们运行在较慢的主机，一个变量的增加将影响所有的测试。注意，完全可以覆盖这个值，或者什么都不传递给 *wait_for_login()* ，因为这个方法有一个默认的超时值。 回到业务，从我们的参数dict选择登录超时：
 
 ``` stylus
 def run(test, params, env):
@@ -382,7 +383,7 @@ def run(test, params, env):
     session = vm.wait_for_login(timeout=timeout)
 ```
 
- 1. Avocado-VT将尽力去攫取这个会话，如果因为超时或者其他原因没能获取，它将抛出一个failure，测试失败。假设事情进展顺利，现在你有一个会话对象，你可以在你的客户机上输入命令和重新获得输出。所以在大多数时候，我们可以通过函数 *cmd()* 获取这些命令的输出。它将输入命令，攫取标准输入和输出，返回它们，所以你可以把它存在一个变量中，并且如果这个命令的退出码是 !=0，它将抛出一个 aexpect.ShellError? 。所以获取unix命令uptime的输出就像调用带有'uptime'参数的 *cmd()* 一样简单，并且存储结果在一个名为uptime的变量中：
+ 1. Avocado-VT将尽力去攫取这个会话，如果因为超时或者其他原因没能获取，它将抛出一个failure，测试失败。假设事情进展顺利，现在你有一个会话对象，你可以在你的客户机上输入命令和重新获得输出。所以在大多数时候，我们可以通过函数 *cmd()* 获取这些命令的输出。它将输入命令，攫取标准输入和输出，返回它们，所以你可以把它存在一个变量中，并且如果这个命令的退出码是 !=0，它将抛出一个 aexpect.ShellError? 。因此获取unix命令的正常运行时间的输出就像调用带有'uptime'作为参数的cmd（），并将结果存储在一个名为uptime的变量中：
 
 ``` stylus
 def run(test, params, env):
@@ -396,7 +397,7 @@ def run(test, params, env):
     uptime = session.cmd('uptime')
 ```
 
- 1. 如果你想要打印出这个值，让它能够在test logs总被看见，用logging库记录uptime的log值。既然那是我们想要做的所有，我们可以用函数 *close()* 关掉远程连接，去避免ssh/rss会话在你的测试机里。现在，注意这儿所有可能发生的失败都被函数调用隐式的处理了。如果一个测试从开始到结束都没有未处理的异常，autotest假设测试自动的通过，不需标记一个测试为显式的传递。如果你有失败的明确指向，对于更复杂的测试，你可以添加一些异常：
+ 1. 如果只想打印此值，以便可以在测试日志中看到，只需使用日志记录库记录正常运行时间的值。由于这是我们想要做的，我们可以用函数 *close()* 关掉远程连接，去避免ssh/rss会话在你的测试机里。现在，请注意，这里可能发生的所有失败都是由调用的方法隐式处理的。如果测试从开始到结束，没有未处理的异常，自动测试将自动假定测试为PASSed，不需要将测试标记为显式传递。如果你有明确的失败点，对于更复杂的测试，你可能想要添加一些异常提升：
  
 
 ``` stylus
@@ -413,7 +414,7 @@ def run(test, params, env):
     session.close()
 ```
 
- 1. 现在，我故意在代码中引入一个bug，向各位展示如何使用一些工具去找到并且移除在你的代码中的琐碎的bugs。我强烈鼓励各位用inspektortool来检测代码。这个工作使用pylint在测试代码中捕捉bugs。你可以通过天剑COPR软件库 https://copr.fedoraproject.org/coprs/lmr/Autotest/ 来安装inspektor并且这么做：
+ 1. 现在，我故意在代码中引入一个bug，向各位展示如何使用一些工具去找到并且移除在你的代码中的琐碎的bugs。我强烈鼓励各位用inspektortool来检测代码。这个工作使用pylint在测试代码中捕捉bugs。你可以通过添加COPR软件库 https://copr.fedoraproject.org/coprs/lmr/Autotest/ 来安装inspektor并且这么做：
 
 ``` stylus
 $ yum install inspektor
@@ -428,7 +429,7 @@ Pylint check fail: generic/tests/uptime.py
 Syntax check FAIL
 ```
 
- 1. Ouch。在代码的第10行有一个未定义的变量被调用。它是因为我忘记引入logging库了，它是一个用于处理信息，debug，警告信息的python库。让我处理他，代码变成：
+ 1. Ouch。在代码的第10行有一个未定义的变量被调用。它是因为我忘记引入logging库了，它是一个用于处理信息，debug，警告信息的python库。让我们解决问题，代码变成：
 
 ``` stylus
 import logging
@@ -455,7 +456,7 @@ $ inspekt lint generic/tests/uptime.py
 Syntax check PASS
 ```
 
- 2. So we’re good. Nice! 现在，好的排版对python很重要，inspekt indent将解决排版问题，去掉你代码中后面的空白部分。提交之前对你的测试的很好的整理：
+ 2. 所以我们很好。酷！  现在，因为良好的缩进对python很重要，inspekt indent将解决缩进问题，并在你的代码中剪除空白。提交之前对你的测试的很好的整理：
  
 
 ``` stylus
@@ -494,7 +495,7 @@ virt_test_type指定了这个测试运行的backends，type 指定了测试文�
 $ avocado list uptime
 ```
 
- 7.  仍然还没有ok。我们需要通过启动vt-bootstrap来传播改变到实际的配置中：
+ 7.  仍然还没有ok。我们需要通过运行vt-bootstrap将更改传播到实际的配置：
 
 ``` stylus
 $ avocado vt-bootstrap
@@ -576,17 +577,17 @@ def run(test, params, env):
 
 
 ## Defining New Guests 
-假设你有一个精心准备的客户内核，并且jeOS just doesn’t cut it。这儿你如何添加新的客户：
+假设你有一个精心准备的客户内核，并且JeOS只是不削减它。。这儿你如何添加新的客户：
 
 ### Linux Based Custom Guest
-如果你的客户是一个基本的linux，你能添加一个配置文件片段描述你的测试（给linux的默认的配置中我们有一堆预置值）。
-目录下降到：
+如果你的客户是一个基本的linux，您可以添加描述测试的配置文件片段（给linux的默认的配置中我们有一堆预置值）。
+目录中的下拉列表：
 
 ``` stylus
 shared/cfg/guest-os/Linux/LinuxCustom
 ```
 
-你能添加，例如，foo.cfg  to that dir with the content:
+你能添加，例如，foo.cfg  到该目录与内容:
 
 ``` stylus
 FooLinux:
@@ -606,7 +607,7 @@ TESTS      : 3
 RESULTS    : PASS 3 | ERROR 0 | FAIL 0 | SKIP 0 | WARN 0 | INTERRUPT 0
 TIME       : 104.73 s
 ```
-Provided that you have a file called images/foo-linux.qcow2，如果使用qcow2格式内核。
+假设你有一个名为images / foo-linux.qcow2的文件，如果使用qcow2格式内核。
 其它要被设置的有用的参数（不是一个详尽的列表）：
 
 ``` stylus
@@ -630,12 +631,12 @@ file_transfer_port = 22
 
 ### Windows Based Custom Guest
 如果你的客户是基本的windows，你可以添加一个配置文件片段描述你的测试（对于默认windows配置我们有一堆预设置值）。
-目录下降到：
+目录下拉列表为：
 
 ``` stylus
 shared/cfg/guest-os/Windows/WindowsCustom
 ```
-你可以添加，例如foo.cfg to that dir with the content:
+你可以添加，例如foo.cfg 到该目录与内容：
 
 ``` stylus
 FooWindows:
@@ -646,7 +647,7 @@ FooWindows:
 ``` stylus
 $ avocado run migrate..tcp --vt-type qemu --vt-guest-os WindowsCustom.FooWindows
 ```
-Provided that you have a file called images/foo-windows.qcow2.
+假设你有一个名为images / foo-windows.qcow2的文件。
 
 其他有用的参数被设置（不是一个详尽的列表）：
 
@@ -659,7 +660,7 @@ username = Administrator
 password = 1q2w3eP
 ```
 # Install Optional Packages
-一些数据包在Avocado-VT的硬依赖关系中没有被设置，因为他们仅在一些特定的使用案例中需要。
+某些软件包在Avocado-VT中未设置为硬依赖关系，因为他们仅在一些特定的使用案例中需要。
 
 如果你在运行特定的测试中遇到问题，请查证如果安装提到的数据包是否能解决问题。
 
@@ -729,7 +730,8 @@ $ yum install qemu-kvm qemu-kvm-tools
 ``` stylus
 $ yum install virt-install
 ```
-To run all tests that involve filedescriptor passing，你需要python-devel。原因是，这个测试套件和python2.4兼容，然而一个通过filedescriptors 的标准库仅仅引入了python3.2 。因此，我们不得不引入了一个编译需求的C python扩展
+
+要运行涉及filedescriptor传递的所有测试，你需要python-devel。原因是，这个测试套件和python2.4兼容，然而一个通过filedescriptors 的标准库仅仅引入了python3.2 。因此，我们不得不引入了一个编译需求的C python扩展
 
 ``` stylus
 $ yum install python-devel
@@ -741,7 +743,7 @@ $ yum install python-devel
 $ yum install python-imaging
 ```
 
-不是至关重要的，但非常便捷的是做imaging转换，从ppm到jpeg和png（允许最小的images）。
+不重要，但非常便捷的是做imaging转换，从ppm到jpeg和png（允许最小的images）。
 
 
 ### Tests that are not part of the default JeOS set
@@ -751,7 +753,7 @@ $ yum install python-imaging
 $ yum install mkisofs
 ```
 
-为了更新的发行版，例如Fedora，你将需要：
+对于较新的发行版（例如Fedora），您需要：
 
 ``` stylus
 $ yum install genisoimage
@@ -759,7 +761,7 @@ $ yum install genisoimage
 两个数据包都提供了相同的功能，需要去创造将在客户机安装进程期间使用的iso images。你也可以执行。
 
 ### Network tests
-最后但并不是最不重要的，现在我们依靠libvirt给我们提供一个稳定的，工作桥。默认的，kvm测试使用用户网络，所以这不是完全必要的。 However, non root and user space networking make a good deal of the hardcode networking tests to not work.如果你最终像使用bridges：
+最后但同样重要的是，现在我们依靠libvirt为我们提供一个稳定的工作桥梁。 默认情况下，kvm测试使用用户网络，因此这不是完全必要的。 但是，非根和用户空间网络使得大量的硬编码网络测试不工作。 如果你最终可能想使用网桥：
 
 ``` stylus
 $ yum install libvirt bridge-utils
@@ -910,7 +912,7 @@ virbr0      8000.525400678eec   yes     virbr0-nic
 $ avocado list --vt-type [test type] --vt-list-guests
 ```
 
-这将生成一个能被测试使用的可能的客户机列表，提供他们的相关内核。列表将展示出客户机当前没有的可获得的内核。如果你执行了一般的引导程序，只有 JeOS.17.64可获得。
+这将生成可用于测试的可能的客户机列表，提供他们的相关内核。该列表将显示哪些客户机目前没有可用的内核。如果你执行了一般的引导程序，只有 JeOS.17.64可获得。
 
 现在假设你拥有给另一个客户机的内核。假设你安装了 Fedora 17, 64 bits，选项 –list-guests将展示下载的：
 
@@ -921,7 +923,7 @@ Linux.CentOS.6.6.i386.i440fx (missing centos66-32.qcow2)
 Linux.CentOS.6.6.x86_64.i440fx (missing centos66-64.qcow2)
 ```
 
-你可以列出所有对Fedora.17.64可用的测试（you must use the exact string printed by the test, minus obviously the index number, that’s there only for informational purposes）：
+你可以列出所有对Fedora.17.64可用的测试（您必须使用测试打印的确切字符串，减去明显的索引号，这只是为了信息的目的）：
 
 ``` stylus
 $ avocado list --vt-type qemu --vt-guest-os Linux.CentOS.6.6.i386.i440fx --verbose
@@ -960,25 +962,25 @@ $ avocado run balloon_check --vt-type qemu --vt-guest-os Fedora.21
 当启动测试时， Avocado-VT将：
 
  1. 获得一个带有测试参数的字典
- 2. 基于这些参数，准备环境-create or destroy vm instances, create/check disk images, among others。
+ 2. 基于这些参数，准备环境 - 创建或销毁vm实例，创建/检查磁盘映像等
  3. 执行测试自身，那将使用几个定义的参数去进行操作，那通常包含：-如果一个测试没有引发异常，它PASSed  -如果一个测试引发了一个TestFail 异常，它FAILed。  -如果一个测试引发一个TestNAError,ta SKIPPED 。 -否则，它ERRORed 。
- 4. 基于在测试期间发生了什么，执行清除动作，例如杀死vms,移除没有使用的disk images 。
+ 4. 基于在测试期间发生了什么，执行清除动作，例如杀死vms,移除没有使用的磁盘映像 。
 
 参数列表是通过解析一组配置文件获得。命令行选项通常会更进一步的修改解析文件，所以我们在配置集中引入新的数据。
 
 # Cartesian Configuration
-Cartesian Configuration是一种专业的提供不同类别的组合的键值对列表的方式。简化和凝结高度复杂的多维数组格式的测试参数平面列表。组合的结果可以筛选和调整前测试，用过滤器，依赖性，键值代替。
+笛卡尔配置是一种高度专业化的方式，提供各种类别组合中的键/值对列表。该格式简化并将高度复杂的多维测试参数阵列集成到一个平面列表中。在测试之前，可以使用过滤器，依赖性和键/值替换来过滤和调整组合结果。
 
-解析器依赖于缩进，并且对tab键和空格字符的误放非常敏感。强烈建议在能够把tab键转换到四个空格字符的编辑器中编辑或浏览Cartesian配置文件。不注意列间距的话会大大地影响输出。
+解析器依赖于缩进，并且对制表符和空格字符的错位非常敏感强烈建议在能够将制表符折叠成四个空格字符的编辑器中编辑/查看笛卡尔配置文件。不当地注意列间距可能会严重影响输出。
 
 ##  Keys and values
 
-Keys和values是格式提供的最基本的有用的工具。格式 \<key> = \<value>设置了\<key> 到 \<value> 的声明。values是字符串，终止于一个换行符，用可选的（but honored）引号完全包括。大多keys的一份参考描述被包含在配置参数参考空间里。The key will become part of all lower-level (i.e. further indented) variant stanzas (see section [variants][16])。然而，key的优先级是自上而下或者 ‘last defined’ 的顺序评估的。换句话说，最后解析的key优先级大于早期定义的。
+键和值是格式提供的最基本的有用工具。格式 \<key> = \<value>设置了\<key> 到 \<value> 的声明。values是字符串，终止于一个换行符，用可选的（but honored）引号完全包括。大多keys的一份参考描述被包含在配置参数参考空间里。键将成为所有较低级（即进一步缩进） variant stanzas (see section [variants][16]) 的一部分。但是，按照自顶向下或“最后定义”顺序评估key的优先级。 换句话说，最后一个解析的键优先于先前的定义。
 
 
 
 ## Variants
-一个‘variants’ stanza 是用 ‘variants:’声明开始的。stanza 的内容必须比‘variants:’ 的声明向左缩进。每个variant stanza或者块定义一个一维输出数组。当一个Cartesian 配置文件包含两个 variants stanzas时，输出将尽可能的是两个变量内容的组合。变量可以被其他变量嵌套，用外面的数组单元可以有效的任意的嵌套复杂的数组。例如：
+一个‘variants’ stanza 是用 ‘variants:’声明开始的。stanza 的内容必须比‘variants:’ 的声明向左缩进。每个variant stanza或者块定义输出数组的单个维度。当笛卡尔配置文件包含两个variants stanzas时，输出将是所有变量内容的所有可能组合。变体可以嵌套在其他变体中，有效地将任意复杂的阵列嵌套在外部阵列的单元内。例如：
 
 ``` stylus
 variants:
@@ -998,7 +1000,7 @@ variants:
 ```
 
 
-当组合时，每个基于预先的每个变量的结果的解析格式名称对应到一个列表。换句话说，第一个变量名字的解析将表现为 the left most name component.这些名称可能变得相当长，并且因为他们包含keys去区分结果，一个 ‘short-name’  key 也可以使用。例如，运行 *cartesian_config.py* 对上面内容产生下列组合和名称：
+在组合时，解析器根据将每个变体添加到列表中形成每个结果的名称。 换句话说，解析的第一个变体名称将显示为最左边的名称组件。这些名称可能变得相当长，并且因为他们包含keys去区分结果，一个 ‘short-name’  key 也可以使用。例如，运行 *cartesian_config.py* 对上面内容产生下列组合和名称：
 
 ``` stylus
 dict    1:  four.one
@@ -1014,7 +1016,9 @@ dict    9:  six.three
 当结果被记录（看章节Job Names and Tags），变量的短名称表现为使用过的 \<TESTNAME>  value， 为了变量的便捷性，变量的名字用一个' @ '开始而不是预先考虑的‘short-name’名称，只有'name'。这允许创建‘shortcuts’来指定multiple sets或者改变成没有改变结果目录名称的键值对。例如，这经常对提供一个相关的基于其他测试组合的预配置测试带来很大的便捷。
 
 ## Named variants
-variants 命名允许指定一个可解析的名字给一个变量集合。这使得整个变量集合可以在过滤器中使用。所有输出组合将继承自variant key名字，跟随指定的 variant name，例如：
+
+命名变体允许为变量集分配可分析名称。 这使得整个变量集可以用于过滤器。 所有输出组合将继承指定的variant key以及特定的 variant name。 例如：
+
 
 ``` stylus
 variants var1_name:
@@ -1086,7 +1090,7 @@ dict    4:  (disk_interface=hda).(guest_os=ubuntu)
 ```
 
 ## Dependencies
-经常有必要指示variants之间的关系。在这种方式中，the order of the resulting variant sets 将受影响。这通过在子variant名称之后将列出所有父辈的名称（按顺序）来完成。然而，依赖性的影响是 ‘weak’，在那后面的定义中，lower-level (higher indentation) definitions，nd/or filters (see section filters)可能修改或移除关联。例如，测试无人值守的安装，每个虚拟机在前面被引导，并且在后面被关机：
+经常有必要指示variants之间的关系。以这种方式，可以影响所得变体集的顺序。这是通过在孩子的变体名称之后列出所有父母的姓名（按顺序）来实现的。然而，依赖的影响是“弱”，因为任何稍后定义的，较低级别（较高缩进）定义和/或过滤器（请参阅  filters）可以删除或修改依赖关系。例如，测试无人值守的安装，每个虚拟机在前面被引导，并且在后面被关机：
 
 ``` stylus
 variants:
@@ -1096,10 +1100,10 @@ variants:
         key2 = World
     - three: one two
 ```
-导致正确的variant sets顺序是： one, two, 然后 three。
+在变体集的正确序列中的结果： one, two, 然后 three。
 
 ## Filters
-过滤器声明允许修改基于variant 集合名字（看章节 variants）的keys集合的结果。过滤器有3种使用方式：限制集合用仅包含组合的名称的集合去匹配一种模式。限制集合去排除不匹配的组合名称来匹配一种模式。修改集合或者带有匹配的组合名字的键值对内容。
+过滤器语句允许基于变量集的名称修改生成的键集（请参见  variants）。 过滤器可以以3种方式使用：将集合限制为仅包括与模式匹配的组合名称。 限制集合以排除所有不匹配模式的组合名称。 修改匹配组合名称中的键/值对的集合或内容。
 
 名称通过解析一个variant名称组件来匹配，variant组件带有字符（集），','代表OR，'..'代表AND，'.'代表IMMEDIATELY-FOLLOWED-BY。当独自使用时，他们允许修改先前定义的键值列表。例如：
 
@@ -1117,7 +1121,7 @@ only Linux..Fedora..64
 ```
 将减少一个任意的大矩阵，只有这些variants，他们名字包含 Linux, Fedora, 和 64。
 
-However, note that any of these filters may be used within named variants as well.在这个应用中，they are only evaluated when that variant name is selected for inclusion (implicitly or explicitly) by a higher-order.例如：
+但是，请注意，这些过滤器中的任何一个也可以在命名的变体中使用。 在此应用程序中，仅当选择变体名称（由隐含或显式包含）时，才会评估它们。 例如：
 
 ``` stylus
 variants:
@@ -1153,9 +1157,9 @@ key3 = World
 替代值是内容敏感的，因此如果一个key被用同样的或者更高阶的块重定义，那个值将被用于未来的替换。如果一个key被用于替换，但还没有被定义，就不会起作用。换句话说，$key或者${key}字符串将出现字面上或内部的值。参照的嵌套是不支持的。（i.e. key substitutions within other substitutions.
 
 
-例如，如果one = 1，two = 2，three = 3；那么order = ${one}${two}${three}导致order = 123。 This is particularly handy for rooting an arbitrary complex directory tree within a predefined top-level directory.
+例如，如果one = 1，two = 2，three = 3；那么order = ${one}${two}${three}导致order = 123。 这对于在预定义的顶级目录中生成任意复杂的目录树特别方便。
 
-An example of context-sensitivity,
+上下文敏感性的示例，
 
 ``` stylus
 key1 = default value
@@ -1202,7 +1206,8 @@ dict    3:  three
 
 
 ## Key sub-arrays
-Parameters for objects like VM’s utilize array’s of keys specific to a particular object instance. In this way, values specific to an object instance can be addressed. For example, a parameter ‘vms’ lists the VM objects names to instantiate in the current frame’s test. Values specific to one of the named instances should be prefixed to the name:
+
+VM的对象的参数利用特定对象实例特有的键的数组。 以这种方式，可以解决对象实例特有的值。 例如，参数“vms”列出了要在当前框架测试中实例化的VM对象名称。 特定于某个命名实例的值应以名称为前缀：
 
 ``` stylus
 vms = vm1 second_vm another_vm
@@ -1212,11 +1217,12 @@ mem_second_vm = 1024
 ```
 结果将是，3个虚拟机对象被创建。第三个虚拟机（another_vm）收到默认的'mem'值128.第二个虚拟机收到基于他们的名字指定的值。
 
-这些卸载配置文件中的声明的顺序是不重要的；声明标记的一个单独的对象总是覆盖声明标记所有对象。注意：This is contrary to the way the Cartesian configuration file as a whole is parsed (top-down).
+这些卸载配置文件中的声明的顺序是不重要的；声明标记的一个单独的对象总是覆盖声明标记所有对象。注意：这与笛卡尔配置文件作为一个整体解析的方式（自上而下）相反。
 
 
 ## Include statements
-include声明在一个Cartesian 配置文件被利用去更好的组织相关内容。在解析时，当解析器遇到include语句，任何引用的文件的内容将被评估。The order in which files are included is relevant, and will carry through any key/value substitutions (see section [key_sub_arrays][17]) as if parsing a complete, flat file.
+
+include声明在一个Cartesian 配置文件被利用去更好的组织相关内容。在解析时，当解析器遇到include语句，任何引用的文件的内容将被评估。包含文件的顺序是相关的，并且将进行任何键/值替换(see section [key_sub_arrays][17]) 就像解析完整的平面文件。
 
 ## Combinatorial outcome
 
@@ -1225,7 +1231,7 @@ include声明在一个Cartesian 配置文件被利用去更好的组织相关内
 ``` stylus
 common_lib/cartesian_config.py tests/libvirt/tests.cfg
 ```
-输出将仅仅是组合的结果集项目的名称（see short-names, section Variants）。然而， ‘--contents’参数可以指定在更深层次检查结果。 Internally, 键值数据的存储和访问和python目录实例类似。With the collection of dictionaries all being part of a python list-like object. Irrespective of the internals, running this module from the command-line is an excellent tool for both reviewing and learning about the Cartesian Configuration format.
+输出将仅仅是组合的结果集项目的名称（see short-names, section Variants）。然而， ‘--contents’参数可以指定在更深层次检查结果。 Internally, 键值数据的存储和访问和python目录实例类似。使用所有的字典集合作为一个python列表的对象的一部分。 无论内部，从命令行运行此模块是一个很好的工具，用于审查和学习笛卡尔配置格式。
 
 一般来说，每个定义的variants独特的组合为一个单独的测试提供了参数。测试所得的，通过每个结果，通过测试代码传递keys和values的集合到日常工作。当检查Cartesian 配置文件时，有助于考虑做为 “defaults”定义的最早的key，然后查看文件尾部为了其他顶层覆盖这些值。如果有疑问在哪定义或设置一个key，把它放置在顶层缩进层，在文件尾部，将保证他被使用。
 
@@ -1248,12 +1254,12 @@ common_lib/cartesian_config.py tests/libvirt/tests.cfg
    - 一行异常有格式 \<regex>: \<key> \<operator> \<value>,其中 \<operator>是上面列出的任何一种操作（例如 =, +=, ?<=）。正则表达式 \<regex>的声明在当前框架中适用于字典中谁的名字部分匹配 \<regex>（例如，包含一个子串匹配 \<regex>）。
    - 一个多行的异常块被一行 \<regex>:格式打开。这行后面的文本应该被缩进。多行异常块的声明可能是赋值语句（例如 \<key> = \<value>）或者没有或者只有声明。嵌套的多行异常被允许。
  - Parsing Variants
-   - 一个variants块通过variants: 声明打开。声明的缩进级别places the following set within the outer-most context-level when nested within other variant: blocks. The contents of the variants: block must be further indented.
-   - 一个variant-name可选择的遵循variants关键字，在字符:之前。That name will be inherited by and decorate all block content as the key for each variant contained in it’s the block.
-   - variants 的名字用 - \<variant_name>:指定。Each name is pre-pended to the name field of each dict of the variant’s frame, along with a separator dot (‘.’).
+   - 一个variants块通过variants: 声明打开。当嵌套在其他variant：blocks中时，语句的缩进级别将以下集合置于最外层上下文级别之内。 variants: block的内容必须进一步缩进。
+   - 一个variant-name可选择的遵循variants关键字，在字符:之前。该名称将被所有块内容继承并作为其中包含的每个变体的键进行装饰。
+   - variants 的名字用 - \<variant_name>:指定。每个名称都预置到变体框架的每个字典的名称字段，以及一个分隔点 (‘.’)。
    - 每个variant 的内容可以使用格式 \<key> \<op> \<value>。他们也可以包含更近一步的variants:声明。
-   - 如果variant的名字is not preceeded by a @ (i.e. - @<variant_name>:)，it is pre-pended to the shortname field of each dict of the variant’s frame. In other words, if a variant’s name is preceeded by a @, it is omitted from the shortname field.
-   - 在一个variants块中的每个variant继承一份框架 in which the variants: statement appears. The ‘current frame’, which may be modified by the dict parser, becomes this copy.
+   - 如果variant的名字不是用@开始着手 (i.e. - @<variant_name>:)，它被预先附加到变体帧的每个字典的短名称字段。换句话说，如果变量名称前面带有@，则从shortname字段中省略。
+   - 变体块中的每个变体都将继承其中显示变体：语句的框架的副本。可以由dict解析器修改的“current frame”成为此副本。
    - 定义在块中的variants框架被连接成一个单一的框架。框架的内容替换外面包含的框架的内容（如果有一个）。
  - Filters
    - 过滤器可以有3种使用方式：
@@ -1684,7 +1690,7 @@ Dictionary #2:
 
 测试配置文件通过指定每个测试参数用于控制框架。解析器产生一个键值组的列表，每组数据用于说明一个单独的测试。Variants被组织成单独的基于范围和适用性的文件。例如，客户操作系统的定义来源于一个共享位置，因为所有的虚拟化测试可以利用他们。
 
-对于每个set/test，keys被测试调度系统，预处理程序，测试模块本身解释，然后被后处理程序解释。一些参数需要特定的部分，并且其它参数时可选择的。当需要时，parameters are often commented with possible values and/or their effect.在代码中有选择的地方，内存中的keys可以被修改，然而这个操作不被鼓励，除非有个好的原因。
+对于每个set/test，keys被测试调度系统，预处理程序，测试模块本身解释，然后被后处理程序解释。一些参数需要特定的部分，并且其它参数时可选择的。当需要时，参数通常用可能的值和/或其效果来注释。在代码中有选择的地方，内存中的keys可以被修改，然而这个操作不被鼓励，除非有个好的原因。
 
 当avocado vt-bootstrap --vt-type \[type] 命令被执行（看章节 [Bootstrapping Avocado-VT][18]），样例配置文件的副本被拷贝用于虚拟化技术特定目录backends/\[type]/cfg的子目录之下。例如，backends/qemu/cfg/base.cfg 。
  
